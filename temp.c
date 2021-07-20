@@ -33,7 +33,7 @@ int main()
   RQ_pushTB(viINFObits, rq[1], &packets);
   for(int i =0;i<100;i++)
   {
-    fprintf(stderr, " % d:%d\n", i,viINFObits[i]);
+    fprintf(stderr, " % d  :%d\n", i,viINFObits[i]);
   }
   return 0;
 }
