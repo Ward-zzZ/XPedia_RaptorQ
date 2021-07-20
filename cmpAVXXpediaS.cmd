@@ -42,3 +42,4 @@ run_cmd g++ $CFLAGS  XPedia_Transceiver.c  -o XPedia_Transceiver.o
 run_cmd rm -f libXpedia.so
 run_cmd g++ -shared XPedia_AMC.o  XPedia_CODEC.o XPedia_waveform.o XPedia_SCMlsp.o XPedia_mimo.o XPedia_Uplink.o  XPedia_Transceiver.o $LDLIBS_XPedia   -o libXpedia.so
 
+run_cmd export LD_LIBRARY_PATH=./
