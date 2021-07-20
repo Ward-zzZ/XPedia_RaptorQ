@@ -395,6 +395,7 @@ void RQ_decodePush(int *viINFObits, uint8_t *Receiverbuff, int packet_size, int 
     if(byteindex==8)
     {
       byteindex=0;
+      index
     }
   }
   for (int i = 0; i < symbol_num * symbol_Bits; i++)
