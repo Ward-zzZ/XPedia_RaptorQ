@@ -23,7 +23,7 @@
 
 int main()
 {
-  nanorq *rq [2];
+  nanorq *rq [3];
   struct ioctx *myio_in ;
   RQ_encode_init(&rq[1], &myio_in, 2, 1, true);
   symvec packets;
