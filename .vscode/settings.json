@@ -1,0 +1,10 @@
+{
+  "python.pythonPath": "/home/ward/anaconda3/bin/python",
+  "files.associations": {
+    "*.m": "matlab",
+    "perfmetric_comm.h": "c",
+    "xpedia_uplink.h": "c",
+    "xpedia_amc.h": "c",
+    "raptorq.h": "c"
+  }
+}

@@ -1,0 +1,110 @@
+#ifndef __PERF_METRIC_GPARAM_H
+#define __PERF_METRIC_GPARAM_H
+
+#include "PerfMetric_GPARAMorg.h"
+
+
+
+//gstrGPARAM_gCtrlTSTParam_NAME
+DEF_GPARAM_ENUM(gCtrlTSTParam,TSTCASE_0,TSTCASE_1,TSTCASE_2)
+
+//DEF_GPARAM_ENUM(gCtrlCODECType,CODECTYPE_CC,CODECTYPE_TURBO)
+DEF_GPARAM_INT(gCtrlCODECType)
+
+DEF_GPARAM_INT(gCtrlDataSize)
+DEF_GPARAM_INT(gCtrlFileOffSet)
+DEF_GPARAM_STR(gCtrlFileName)
+
+DEF_GPARAM_INT(gCMD_CIROrgSize)
+DEF_GPARAM_INT(gCMD_CIROrgFFTSize)
+DEF_GPARAM_INT(gCMD_CIRBias)
+DEF_GPARAM_INT(gCMD_CIRPeakPos)
+
+
+DEF_GPARAM_INT(gCMD_SlotPeakTYPE)  // 0: use CIR main peak, 1~ : sc index 
+DEF_GPARAM_INT(gCMD_CIROverS)
+DEF_GPARAM_INT(gCMD_CIRoutSize)
+DEF_GPARAM_INT(gCMD_CIRPerSLOT)
+
+DEF_GPARAM_INT(gCMD_CIRSecNum)
+DEF_GPARAM_INT(gCMD_CIRSecStart)
+DEF_GPARAM_INT(gCMD_CIR4msStart)
+
+DEF_GPARAM_INT(gCMD_isLTEFDD)
+
+DEF_GPARAM_INT(gCMD_CIRMax4msNUM)
+DEF_GPARAM_INT(gCMD_Out1CIRperFRM)
+DEF_GPARAM_INT(gCMD_Calibration)
+
+
+DEF_GPARAM_INT(gCMD_PeakMaxNum)
+DEF_GPARAM_INT(gCMD_PeakSideCover)
+DEF_GPARAM_FLT(gCMD_ThresholdNoiseRatio)
+DEF_GPARAM_FLT(gCMD_ThresholdPeakRatio)
+
+DEF_GPARAM_INT(gCMD_PMIAntPortNum)
+DEF_GPARAM_INT(gCMD_PMICorrMaxTTI)
+DEF_GPARAM_FLT(gCMD_PMICorrMinVal)
+DEF_GPARAM_FLT(gCMD_PMICorrMinGain)
+
+DEF_GPARAM_INT(gCMD_TstCODE)
+DEF_GPARAM_INT(gCMD_SOVAlen)
+DEF_GPARAM_INT(gCMD_SOVAadv)
+
+DEF_GPARAM_INT(nGAP)
+DEF_GPARAM_INT(CXperCIR_XXOS)
+
+DEF_GPARAM_INT(gCMD_Division)
+DEF_GPARAM_INT(gnGDBtempfile_cnt)
+
+DEF_GPARAM_INT(gCMD_FFTW_ON)
+
+DEF_GPARAM_INT(gGDB_VEClen)
+DEF_GPARAM_INT(gGDB_VECnum)
+
+DEF_GPARAM_FLT(gCFGldpcexr_boostTHD)
+DEF_GPARAM_FLT(gCFGldpcexr_boostMUL)
+DEF_GPARAM_INT(gCFGldpc_exrUpdTYPE)
+DEF_GPARAM_FLT(gCFGldpc_srcLLRscale)
+DEF_GPARAM_INT(gCFGldpc_rowCHKcoreG)
+
+DEF_GPARAM_INT(gCFGldpc_iterN)
+DEF_GPARAM_INT(gCFGldpc_rowCHKtype)
+DEF_GPARAM_STR(gCFGldpc_DecIMGname)
+
+DEF_GPARAM_INT(gCFGldpc_logTanh_Tlen)
+DEF_GPARAM_INT(gCFGldpc_logTanh_unit)
+DEF_GPARAM_FLT(gCFGldpc_logTanh_val0)
+
+DEF_GPARAM_INT(gCFGldpc_AtanhExp_Tlen)
+DEF_GPARAM_INT(gCFGldpc_AtanhExp_unit)
+DEF_GPARAM_FLT(gCFGldpc_AtanhExp_val0)
+
+
+DEF_GPARAM_INT(gSCM3D_CalibP1_LOSonly)
+DEF_GPARAM_INT(gSCM3D_CalibCL_StrongN)
+
+DEF_GPARAM_INT(gSCM3D_CalibP1_RadioDist)
+DEF_GPARAM_INT(gSCM3D_CalibP1_OmniANT)
+DEF_GPARAM_INT(gSCM3D_CalibP1_VShapingN)     // number of vertical antenna elements for vertical shift-phase shaping, 1 or 10
+DEF_GPARAM_FLT(gSCM3D_CalibP1_DwntiltDEG)
+DEF_GPARAM_FLT(gSCM3D_CalibP1_PC_Alpha)
+DEF_GPARAM_FLT(gSCM3D_CalibP1_UE_BWMHz)
+DEF_GPARAM_INT(gSCM3D_CalibP1_O2I_ON)       // 0 : outdoor only, 1: outdoor & indoor
+
+DEF_GPARAM_INT(gMIMO_RandomPrecoding_ON)    // 0 : normal precoding matrix , 1 : random precoding matrix
+DEF_GPARAM_INT(gMPC_SoftCombine_ON)         // 0 : hard combination ,  1 :  soft combination
+
+DEF_GPARAM_FLT(gSCM3D_CarrierGHz)
+DEF_GPARAM_INT(gSCM3D_isLSPcfg_4G)          // 1 : 36.873  , 0 : 38.901
+
+
+DEF_GPARAM_INT(gSCM3D_saveSCHfile)
+
+
+
+
+
+
+
+#endif /* __PERF_METRIC_GPARAM_H */
