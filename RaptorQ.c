@@ -297,43 +297,155 @@ uint32_t RQ_receive(nanorq *rq, struct ioctx *myio, int NetTBS, uint32_t esi, sy
   return (uint32_t)(esi + symbol_num);
 }
 
-void RQ_pushTB(int *viINFObits, nanorq *rq, symvec *subpackets)
+void RQ_encodedData(nanorq *rq, struct ioctx *myio, symvec *packets, float overhead)
 {
+  int sbn = 0;
+  int num_esi = nanorq_block_symbols(rq, sbn);
+  int packet_size = nanorq_symbol_size(rq);
+  int total_symbolNum = (int)(overhead * num_esi);
+  for (uint32_t esi = 0; esi < total_symbolNum; esi++)
+  {
+    uint8_t *data = malloc(packet_size); //保留一个symbol的空间
+    uint64_t written = nanorq_encode(rq, (void *)data, esi, sbn, myio);
+
+    if (written != packet_size)
+    {
+      free(data);
+      fprintf(stderr, "failed to encode packet data for sbn %d esi %d.", sbn,
+              esi);
+      exit(1);
+    }
+    else
+    {
+      uint32_t tag = nanorq_tag(sbn, esi);
+      struct sym s = {.tag = tag, .data = data};
+      kv_push(struct sym, *packets, s); //保存一个symbol数据
+    }
+  }
+}
+
+void RQ_saveEncoded_data(uint8_t *Senderbuff, nanorq *rq, symvec *packets)
+{
+  int packet_size = nanorq_symbol_size(rq); //单位字节,symbol长度
   int packet_size = nanorq_symbol_size(rq); //单位字节
   int sum = 0;
-  for (int i = 0; i < kv_size(*subpackets); i++)
+  struct sym s;
+  uint32_t esi;
+  uint8_t *data;
+  for (int i = 0; i < kv_size(*packets); i++)
   {
-    struct sym s = kv_A(*subpackets, i);
-    uint32_t esi = s.tag;
-    uint8_t *data = s.data;
+    s = kv_A(*packets, i);
+    esi = s.tag;
+    data = s.data;
     //esi
-    for (int j = 31; j >= 0; j--)
+    for (int j = 3; j >= 0; j--)
     {
-      if (esi & (1 << j))
+      *Senderbuff = (esi >> (i * 8)) & 0xFF;
+      Senderbuff++;
+      // printf("%d\n", a[i]);
+    }
+    //source data
+    for (int m = 0; m < packet_size; m++)
+    {
+      *Senderbuff = *data;
+      data++;
+    }
+  }
+}
+
+void RQ_encodePush(int *viINFObits, uint8_t *Senderbuff, int packet_size, uint32_t startesi, int NetTBS, struct OTI *oti, int Transindex)
+{
+  int sum = 0;
+  int symbol_Bits = packet_size * 8 + 32; //发送的一个symbol+Payload id的总bit数
+  int symbol_num = (NetTBS) / (symbol_Bits);
+  int total_symbolNum = (int)(oti->overhead * oti->srcsymNum);
+  if ((symbol_num + startesi) > total_symbolNum)
+    symbol_num = total_symbolNum - startesi;
+  Senderbuff += startesi * (packet_size + 4);
+  for (int i = 0; i < symbol_num * symbol_Bits; i++)
+  {
+    uint8_t bytedata = *Senderbuff;
+    Senderbuff++;
+    for (int n = 7; n >= 0; n--)
+    {
+      if (bytedata & (1 << n))
         *viINFObits = 1;
       else
         *viINFObits = 0;
       viINFObits++;
       sum++;
     }
-    //source data
-    for (int m = 0; m < packet_size; m++)
+  }
+  fprintf(stderr, "总共压入数据 %d比特.\n", sum);
+}
+
+void RQ_decodePush(int *viINFObits, uint8_t *Receiverbuff, int packet_size, int NetTBS, struct OTI *oti, uint32_t totalRecvr)
+{
+  int sum = 0;
+  int packet_size = oti->common.T;
+  int symbol_Bits = packet_size * 8 + 32; //发送的一个symbol+Payload id的总bit数
+  int symbol_num = oti->transNum;         //本次传输的symbol总数
+  Receiverbuff += totalRecvr * (packet_size + 4);
+  int byteindex = 0;
+  uint8_t bytedata = 0;
+  for (int i = 0; i < symbol_num * symbol_Bits; i++)
+  {
+    bytedata += (uint8_t)pow(2.0, *viINFObits*byteindex);
+  }
+  for (int i = 0; i < symbol_num * symbol_Bits; i++)
+  {
+    uint8_t bytedata = *Senderbuff;
+    Senderbuff++;
+    for (int n = 7; n >= 0; n--)
     {
-      uint8_t bytedata = *data;
-      data++;
-      for (int n = 7; n >= 0; n--)
-      {
-        if (bytedata & (1 << n))
-          *viINFObits = 1;
-        else
-          *viINFObits = 0;
-        viINFObits++;
-        sum++;
-      }
+      if (bytedata & (1 << n))
+        *viINFObits = 1;
+      else
+        *viINFObits = 0;
+      viINFObits++;
+      sum++;
     }
   }
   fprintf(stderr, "总共压入数据 %d比特.\n", sum);
 }
+
+// void RQ_pushTB(int *viINFObits, nanorq *rq, symvec *subpackets)
+// {
+//   int packet_size = nanorq_symbol_size(rq); //单位字节
+//   int sum = 0;
+//   for (int i = 0; i < kv_size(*subpackets); i++)
+//   {
+//     struct sym s = kv_A(*subpackets, i);
+//     uint32_t esi = s.tag;
+//     uint8_t *data = s.data;
+//     //esi
+//     for (int j = 31; j >= 0; j--)
+//     {
+//       if (esi & (1 << j))
+//         *viINFObits = 1;
+//       else
+//         *viINFObits = 0;
+//       viINFObits++;
+//       sum++;
+//     }
+//     //source data
+//     for (int m = 0; m < packet_size; m++)
+//     {
+//       uint8_t bytedata = *data;
+//       data++;
+//       for (int n = 7; n >= 0; n--)
+//       {
+//         if (bytedata & (1 << n))
+//           *viINFObits = 1;
+//         else
+//           *viINFObits = 0;
+//         viINFObits++;
+//         sum++;
+//       }
+//     }
+//   }
+//   fprintf(stderr, "总共压入数据 %d比特.\n", sum);
+// }
 
 bool RQ_isBlockend(nanorq *rq, uint32_t esi, float overhead)
 {

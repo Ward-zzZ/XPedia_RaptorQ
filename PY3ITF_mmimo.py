@@ -1,4 +1,4 @@
-from PY3InterFACE_COMM import newINTS
+from PY3InterFACE_COMM import newBYTES, newINTS
 
 
 exec(open('PY3InterFACE_COMM.py').read());
@@ -123,6 +123,7 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
 
     viCRC       = newINTS(4);                          viCRCs_pool = newINTS(iRecvrM*iSendrN);             viSNRs_meas = newFLTS(iSendrN);                 pTTInum     = newINTS(2);
     MPClen      = 1000;                                viMPCs_pool  = newINTS(iSendrN*MPClen);             vfSEQs_all  = newFLTS(iSendrN*LyrN*SCnum*2);
+
     #viRVbits    = newINTS(RVmax);                      vfRVllrs    = newFLTS(RVmax);                       vfCxQamS    = newFLTS(QamMAX*2);
     #vfTTItxsig  = newFLTS(TTIlen*2);                   vfSEQs_org  = newFLTS(2*SCnum*LyrN*2);              vfCxQams_RX = newFLTS(QamMAX*2);
     #vfTTIRXsig  = newFLTS(TTIlen*2);                   vfCxQams    = newFLTS(QamMAX*2);
@@ -137,6 +138,14 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     vfHARQllr_pool = newFLTS(iRecvrM*iSendrN*HARQlen);   vfCxICEs_pool  = newFLTS(iRecvrM*OFDMnum*SCnum*RxM*LyrN*2);
     viTransblock = newINTS(8)
     viCRCblock = newINTS(iSendrN*2);
+
+    ##RaptorQ related
+    Maxblocksize = (pow(2, 16)-1)*56403*4;#bytes,max overhead: 4
+    Senderbuff = newBYTES(Maxblocksize*iSendrN);#bytes,save sender encoded block data
+    Receiverbuff = newBYTES(Maxblocksize*iSendrN*iRecvrM);
+    Transindex = newINTS(iSendrN);#the end symbol index of current transmission
+    totalRecvr = newINTS(iSendrN*iRecvrM);#total received symbols numbers
+    
 
     vfTTI_SNRs  = newFLTS(TTInum*iSendrN);                  vfTTIsnrSUM = newFLTS(TTInum);           vfTTIMbps = newFLTS(TTInum);
     #CxSEQ_ZCseq(vfSEQs_org[SCnum*0:SCnum*2],  SCnum, 1,0); # ZCroot = 1; ZCoffset = 0
