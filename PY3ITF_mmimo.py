@@ -1,3 +1,4 @@
+from ctypes import *
 from PY3InterFACE_COMM import newBYTES, newINTS
 
 
@@ -139,13 +140,26 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     viTransblock = newINTS(8)
     viCRCblock = newINTS(iSendrN*2);
 
-    ##RaptorQ related
-    Maxblocksize = (pow(2, 16)-1)*56403*4;#bytes,max overhead: 4
+###################################################RaptorQ related############################################
+    num_packet=0
+    packsize=0
+    Maxblocksize = (math.pow(2, 16)-1)*56403*4;#bytes,max overhead: 4
     Senderbuff = newBYTES(Maxblocksize*iSendrN);#bytes,save sender encoded block data
     Receiverbuff = newBYTES(Maxblocksize*iSendrN*iRecvrM);
     Transindex = newINTS(iSendrN);#the end symbol index of current transmission
     totalRecvr = newINTS(iSendrN*iRecvrM);#total received symbols numbers
-    
+    class OTI_pythonOrg(Structure):
+      _fields_ = [("F",c_size_t),("T",c_size_t),("AL",c_size_t),
+                  ("Z",c_size_t),("N",c_size_t),("Kt",c_size_t),
+                  ("overhead",c_float),("srcsymNum",c_uint32),
+                  ("transNum",c_uint32),("Endflag",c_bool),]
+    OTI_python=(OTI_pythonOrg*iSendrN)()
+    #RQ init
+    for i in range(iSendrN):
+        OTI_python[i].Endflag=True;
+        OTI_python[i].overhead=3;#开销设置为3
+
+##############################################################################################################
 
     vfTTI_SNRs  = newFLTS(TTInum*iSendrN);                  vfTTIsnrSUM = newFLTS(TTInum);           vfTTIMbps = newFLTS(TTInum);
     #CxSEQ_ZCseq(vfSEQs_org[SCnum*0:SCnum*2],  SCnum, 1,0); # ZCroot = 1; ZCoffset = 0
@@ -167,6 +181,8 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
 
 
     SMP_init(viMPCs_pool, MPClen, NetTBScfg, SUMsc, ModuTcfg, fEsN0meas, iSendrN, RxM,  PMslen, AMC_on);    viSNRs_meas.fill(fEsN0meas)
+
+
     for cntTTI in range(TTInum) :
         if GERROR_chk(10) : break;
         isPMok = 1;
@@ -175,6 +191,7 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
         # *******************************************************************************************************************************************************************************
         # ******************************** Multi. Point Control *************************************************************************************************************************
         CWnum = SMP_control(viMPCs_pool, MPClen, vfCxPMs_pool, viINFOs_pool,  MaxTBS,  viCRCs_pool,  viSNRs_meas,  vfCxPMS_meas,  PMslen, SubBN, TxN, isPMok, viTransblock,LyrN,  iSendrN,  iSNRdlyTTI,  iPMIdlyTTI,viCRCblock);
+        RQ_control(Senderbuff,c_ulong(Maxblocksize),viINFOs_pool,Transindex,byref(OTI_python),c_size_t(num_packet),c_size_t(packsize),iSendrN)
         # *******************************************************************************************************************************************************************************
         #vfCxSCv_RX.fill(0.0);    #reset receive channels
         #vfSEQs_all.fill(0.0);    #reset DMRSs
