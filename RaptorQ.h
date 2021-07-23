@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "nanorq.h"
 
 #include "kvec.h"
@@ -33,10 +32,11 @@ struct OTI_python
   uint64_t oti_common;
   uint32_t oti_scheme;
   size_t packet_size;
-  float overhead;   //（repair symbol number/source symbol number）+1
-  size_t srcsymNum; //source symbol number
-  size_t transNum;  //本次传输的symbol number
-  bool Endflag;     //当前block结束标志
+  float overhead;    //（repair symbol number/source symbol number）+1
+  size_t srcsymNum;  //source symbol number
+  size_t transNum;   //本次传输的symbol number
+  size_t totalTrans; //当前块以传输的总数
+  bool Endflag;      //当前block结束标志
 };
 
 typedef kvec_t(struct sym) symvec;
@@ -49,10 +49,11 @@ int RQ_decode(uint8_t *Receiverbuff, struct OTI_python *oti, int totalRecvr);
 void RQ_buffTosymvec(uint8_t *Receiverbuff, struct OTI_python *oti, symvec *packets, int totalRecvr);
 void RQ_decodePush(int *viINFObits, uint8_t *Receiverbuff, int *viCRCs_pool, struct OTI_python *oti,
                    int *totalRecvr, int iRecvrM, int iSendrN, int MaxTBs, int Maxblocksize);
-int RQ_encodePush(int *viINFObits, uint8_t *Senderbuff, int packet_size, int startesi, int NetTBS, struct OTI_python *oti);
+void RQ_encodePush(int *viINFObits, uint8_t *Senderbuff, int packet_size, int NetTBS, struct OTI_python *oti);
 void RQ_saveEncoded_data(uint8_t *Senderbuff, nanorq *rq, symvec *packets);
 void RQ_encodedData(nanorq *rq, struct ioctx *myio, symvec *packets, float overhead);
 uint64_t RQ_decodeControl(uint8_t *Receiverbuff, struct OTI_python *oti,
                           int *totalRecvr, int iRecvrM, int iSendrN, int Maxblocksize);
-void RQ_encodeControl(uint8_t *Senderbuff, unsigned long Maxblocksize, int *viINFObits, int *Transindex, int *viTBs,
-                      struct OTI_python *oti_python, size_t num_packets, size_t packet_size, int MaxTBs, int iSendrN);
+void RQ_encodeControl(uint8_t *Senderbuff,
+                      int *viINFObits, int *viTBs, struct OTI_python *oti_python,
+                      unsigned long Maxblocksize, size_t num_packets, size_t packet_size, int MaxTBs, int iSendrN);
