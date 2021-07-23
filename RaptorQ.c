@@ -387,7 +387,7 @@ int RQ_encodePush(int *viINFObits, uint8_t *Senderbuff, int packet_size, int sta
 }
 
 void RQ_encodeControl(uint8_t *Senderbuff, unsigned long Maxblocksize, int *viINFObits, int *Transindex, int *viTBs,
-                      struct OTI_python *oti_python, size_t num_packets, size_t packet_size, int MaxTBS, int iSendrN)
+                      struct OTI_python *oti_python, size_t num_packets, size_t packet_size, int MaxTBs, int iSendrN)
 {
   for (int i = 0; i < iSendrN; i++)
   {
@@ -420,7 +420,7 @@ void RQ_encodeControl(uint8_t *Senderbuff, unsigned long Maxblocksize, int *viIN
       (*Transindex) = (*Transindex) + RQ_encodePush(viINFObits, Senderbuff, packet_size, Transindex, *viTBs, oti_python); //更新当前block已经发送的symbol num
     }
     Senderbuff += Maxblocksize;
-    viINFObits += MaxTBS;
+    viINFObits += MaxTBs;
     Transindex += 1;
     viTBs += 1;
     oti_python += 1;
@@ -429,31 +429,108 @@ void RQ_encodeControl(uint8_t *Senderbuff, unsigned long Maxblocksize, int *viIN
 
 /*-----------------------------------------------DECODE-----------------------------------------------------------------*/
 
-void RQ_decodePush(int *viINFObits, uint8_t *Receiverbuff, int NetTBS, struct OTI *oti, uint32_t totalRecvr)
+/*
+ * 根据底层解码情况，将数据放入对应的缓存区
+ * viINFObits: 底层解码出来的01比特流
+ * Receiverbuff: 接收机的缓存区，以byte的形式存储(iSendrN*iRecvrM)
+ * viCRCs_pool: 本次传输的CRC(iSendrN*iRecvrM)
+ * oti: 发送方的OTI信息
+ * totalRecvr: 接收机对当前块成功接收的symbol数
+ */
+void RQ_decodePush(int *viINFObits, uint8_t *Receiverbuff, int *viCRCs_pool, struct OTI_python *oti,
+                   int *totalRecvr, int iRecvrM, int iSendrN, int MaxTBs, int Maxblocksize)
 {
-  int packet_size = oti->common.T;
-  int symbol_Bits = packet_size * 8 + 32; //发送的一个symbol+Payload id的总bit数
-  int symbol_num = oti->transNum;         //本次传输的symbol总数
-  Receiverbuff += totalRecvr * (packet_size + 4);
-  int byteindex = 0;
-  uint8_t bytedata = 0;
-  for (int i = 0; i < symbol_num * symbol_Bits; i++)
+  for (int i = 0; i < iSendrN; i++)
   {
-    bytedata += (uint8_t)pow(2.0, *viINFObits * byteindex);
-    byteindex++;
-    if (byteindex == 8)
+    int packet_size = oti->packet_size;
+    int symbol_Bits = packet_size * 8 + 32; //发送的一个symbol+Payload id的总bit数
+    int symbol_num = oti->transNum;         //本次传输的symbol总数
+    for (int j = 0; j < iRecvrM; j++)
     {
-      byteindex = 0;
-      *Receiverbuff = bytedata;
-      Receiverbuff++;
-      bytedata = 0;
+      uint8_t *oneBolockbuff = Receiverbuff + (j + i * iRecvrM) * Maxblocksize;
+      totalRecvr += (j + i * iRecvrM);
+      viCRCs_pool += (j + i * iRecvrM);
+      if (viCRCs_pool == 1)
+      {
+        //当前接收机接收当前发送方的信息失败
+        continue;
+      }
+      else
+      {
+        //移动指针到当前buff的末尾
+        oneBolockbuff += (*totalRecvr) * (packet_size + 4);
+        int byteindex = 7;
+        uint8_t bytedata = 0;
+        for (int i = 0; i < symbol_num * symbol_Bits; i++)
+        {
+          bytedata += (uint8_t)pow(2.0, *viINFObits * byteindex);
+          byteindex--;
+          if (byteindex == -1)
+          {
+            byteindex = 7;
+            *oneBolockbuff = bytedata;
+            oneBolockbuff++;
+            bytedata = 0;
+          }
+        }
+        //总接收的块数
+        *totalRecvr = *totalRecvr + symbol_num;
+      }
     }
+    oti++;
+    memset(viINFObits, 0, MaxTBs);
+    viINFObits += MaxTBs;
   }
 }
+//r1s1 r2s1 r1s2 r2s2
 
-void RQ_buffTosymvec(uint8_t *Receiverbuff, struct OTI *oti, symvec *packets, uint32_t totalRecvr)
+/*
+ * 根据block传输的结束与否控制RQ解码
+ * 返回本次传输解码成功的bit数
+ */
+uint64_t RQ_decodeControl(uint8_t *Receiverbuff, struct OTI_python *oti,
+                          int *totalRecvr, int iRecvrM, int iSendrN, int Maxblocksize)
 {
-  int packet_size = oti->common.T;
+  uint64_t SumOKBITS =0;
+  int *viCRCblock = malloc(iSendrN);//每个发送block的CRC
+  memset(viCRCblock,1,iSendrN);
+  for (int i = 0; i < iSendrN; i++)
+  {
+
+    if (oti->Endflag)
+    {
+      for (int j = 0; j < iRecvrM; j++)
+      {
+        uint8_t *oneBolockbuff = Receiverbuff + (j + i * iRecvrM) * Maxblocksize;
+
+        totalRecvr += (j + i * iRecvrM);
+        if (*totalRecvr < oti->srcsymNum)
+        {
+          *viCRCblock = ((*viCRCblock) <= (1) ? (*viCRCblock) : (1)); //接收的symbol太少，解码失败
+        }
+        else
+        {
+          int temp= RQ_decode(oneBolockbuff, oti, *totalRecvr);
+          *viCRCblock = ((*viCRCblock) <= (temp) ? (*viCRCblock) : (temp));
+        }
+        *totalRecvr = 0;
+        memset(oneBolockbuff, 0, Maxblocksize);
+      }
+      SumOKBITS += (*viCRCblock) * oti->packet_size * oti->srcsymNum*8;
+    }
+    else
+    {
+      continue;
+    }
+    oti++;
+    viCRCblock++;
+  }
+  return SumOKBITS;
+}
+
+void RQ_buffTosymvec(uint8_t *Receiverbuff, struct OTI_python *oti, symvec *packets, int totalRecvr)
+{
+  int packet_size = oti->packet_size;
   for (int i = 0; i < totalRecvr; i++)
   {
     uint32_t tag = 0;
@@ -465,7 +542,8 @@ void RQ_buffTosymvec(uint8_t *Receiverbuff, struct OTI *oti, symvec *packets, ui
     uint8_t *data = malloc(packet_size); //保留一个symbol的空间
     for (int m = 0; m < packet_size; m++)
     {
-      data[m] = *Receiverbuff;
+      *data = *Receiverbuff;
+      data++;
       Receiverbuff++;
     }
     struct sym s = {.tag = tag, .data = data};
@@ -473,18 +551,11 @@ void RQ_buffTosymvec(uint8_t *Receiverbuff, struct OTI *oti, symvec *packets, ui
   }
 }
 
-void RQ_decode(struct OTI *oti, struct ioctx *myio_out, symvec *packets)
+int RQ_decode(uint8_t *Receiverbuff, struct OTI_python *oti, int totalRecvr)
 {
-  uint64_t oti_common = 0;
-  /* T is decremented by one to avoid overflow */
-  oti_common |= ((uint64_t)oti->common.F) << 24; /* transfer length */
-  oti_common |= (oti->common.T - 1) & 0xffff;    /* symbol size */
+  uint64_t oti_common = oti->oti_common;
 
-  uint32_t oti_scheme = 0;
-  /* Z and N are decremented by one to avoid overflow */
-  oti_scheme |= (oti->scheme.Z - 1) << 24; /* number of source blocks */
-  oti_scheme |= (oti->scheme.N - 1) << 8;  /* number of sub-blocks */
-  oti_scheme |= oti->common.Al;            /* symbol alignment */
+  uint32_t oti_scheme = oti->oti_scheme;
 
   nanorq *rq = nanorq_decoder_new(oti_common, oti_scheme);
   if (rq == NULL)
@@ -495,9 +566,28 @@ void RQ_decode(struct OTI *oti, struct ioctx *myio_out, symvec *packets)
 
   int num_sbn = nanorq_blocks(rq);
 
-  for (int i = 0; i < kv_size(*packets); i++)
+  symvec packets;
+  kv_init(packets);
+
+  //将buff的数据以symbol的格式存入packet中
+  RQ_buffTosymvec(Receiverbuff, oti, &packets, totalRecvr);
+
+  struct ioctx *myio_out;
+
+  uint64_t sz = oti->packet_size * oti->srcsymNum; //源数据大小，bytes
+  uint8_t *out = calloc(1, sz);                    //解码输出数据
+
+  myio_out = ioctx_from_mem(out, sz);
+  if (!myio_out)
   {
-    struct sym s = kv_A(*packets, i);
+    fprintf(stderr, "couldnt access mem at %p\n", out);
+    free(out);
+    return -1;
+  }
+
+  for (int i = 0; i < kv_size(packets); i++)
+  {
+    struct sym s = kv_A(packets, i);
     if (NANORQ_SYM_ERR ==
         nanorq_decoder_add_symbol(rq, (void *)s.data, s.tag, myio_out))
     {
@@ -512,7 +602,7 @@ void RQ_decode(struct OTI *oti, struct ioctx *myio_out, symvec *packets)
     if (!nanorq_repair_block(rq, myio_out, sbn))
     {
       fprintf(stderr, "decode of sbn %d failed.\n", sbn);
-      return false;
+      return 1;
     }
   }
   nanorq_encoder_reset(rq, 0);
@@ -521,14 +611,10 @@ void RQ_decode(struct OTI *oti, struct ioctx *myio_out, symvec *packets)
   {
     nanorq_encoder_cleanup(rq, sbn);
   }
+  myio_out->destroy(myio_out);
   nanorq_free(rq);
-  return true;
-}
-
-void RQ_updateOTI(nanorq *rq, struct OTI_python *oti_python)
-{
-  oti_python->oti_common = nanorq_oti_common(rq);
-  oti_python->oti_scheme = nanorq_oti_scheme_specific(rq);
+  free(out);
+  return 0;
 }
 
 // void RQ_pushTB(int *viINFObits, nanorq *rq, symvec *subpackets)
@@ -568,21 +654,3 @@ void RQ_updateOTI(nanorq *rq, struct OTI_python *oti_python)
 //   }
 //   fprintf(stderr, "总共压入数据 %d比特.\n", sum);
 // }
-
-bool RQ_isBlockend(nanorq *rq, uint32_t esi, float overhead)
-{
-  int sbn = 0;
-  int num_esi = nanorq_block_symbols(rq, sbn);
-  if (esi > (num_esi * overhead))
-    return true;
-  else
-    return false;
-}
-
-void RQ_encoder_free(nanorq *rq, struct ioctx *myio)
-{
-  int sbn = 0;
-  nanorq_encoder_cleanup(rq, sbn);
-  nanorq_free(rq);
-  myio->destroy(myio);
-}
