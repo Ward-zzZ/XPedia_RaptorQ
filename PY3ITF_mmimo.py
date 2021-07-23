@@ -33,7 +33,7 @@ SMP_init = _mybase.SMP_init;  SMP_init.argtypes = ( cINTS ,cINT  ,cINT  ,cINT  ,
 
 
 #  void   SMP_control(int* viMPCs_list, int MPClen, float *vfCxPM_SBD, int* viINFOs_list, int MaxTBS, int* viCRC_list, float* vfSNR_list, float* vfCxPMS_meas, int PMslen, int SubBN, int TxN, int isPMok ,int LyrN, int BSnum, int iSNRdlyTTI, int iPMIdlyTTI);
-SMP_control = _mybase.SMP_control;  SMP_control.argtypes = ( cINTS ,cINT  ,cFLTS ,cINTS ,cINT  ,cINTS ,cFLTS  ,cFLTS  ,cINT  ,cINT  ,cINT  ,cINT  ,cINTS,cINT  ,cINT  ,cINT  ,cINT  ,cINTS);
+SMP_control = _mybase.SMP_control;  SMP_control.argtypes = ( cINTS ,cINT  ,cFLTS ,cINTS ,cINT  ,cINTS ,cFLTS  ,cFLTS  ,cINT  ,cINT  ,cINT  ,cINT  ,cINTS,cINT  ,cINT  ,cINT  ,cINT  ,cINTS,cINTS);
 
 
 #  void   NR_transmitterS(float* vfCxTxOFDMs_pool, int TxN, int* viMPC_pool, int MPClen, int* viSrcBITS_pool, int MaxTBS, int RBnum, int RBfrom, int SEQmaxN,float* vfCxSEQs_pool, int SubBN, int PMlen, float* vfCxSubBPMs_pool,int isPMok,int iSenderN);
@@ -141,13 +141,15 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     viCRCblock = newINTS(iSendrN*2);
 
 ###################################################RaptorQ related############################################
-    num_packet=0
-    packsize=0
-    Maxblocksize = (math.pow(2, 16)-1)*56403*4;#bytes,max overhead: 4
+    num_packet=100
+    packet_size=100
+    # Maxblocksize = int((math.pow(2, 16)-1)*56403*4);#bytes,max overhead: 4
+    Maxblocksize = 1073741824;#1GB
     Senderbuff = newBYTES(Maxblocksize*iSendrN);#bytes,save sender encoded block data
     Receiverbuff = newBYTES(Maxblocksize*iSendrN*iRecvrM);
     Transindex = newINTS(iSendrN);#the end symbol index of current transmission
     totalRecvr = newINTS(iSendrN*iRecvrM);#total received symbols numbers
+    viNetTBs = newINTS(iSendrN);
     class OTI_pythonOrg(Structure):
       _fields_ = [("F",c_size_t),("T",c_size_t),("AL",c_size_t),
                   ("Z",c_size_t),("N",c_size_t),("Kt",c_size_t),
@@ -190,9 +192,15 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
         if (cntTTI <= iPMIdlyTTI) : isPMok = 0;
         # *******************************************************************************************************************************************************************************
         # ******************************** Multi. Point Control *************************************************************************************************************************
-        CWnum = SMP_control(viMPCs_pool, MPClen, vfCxPMs_pool, viINFOs_pool,  MaxTBS,  viCRCs_pool,  viSNRs_meas,  vfCxPMS_meas,  PMslen, SubBN, TxN, isPMok, viTransblock,LyrN,  iSendrN,  iSNRdlyTTI,  iPMIdlyTTI,viCRCblock);
-        RQ_control(Senderbuff,c_ulong(Maxblocksize),viINFOs_pool,Transindex,byref(OTI_python),c_size_t(num_packet),c_size_t(packsize),iSendrN)
-        # *******************************************************************************************************************************************************************************
+        CWnum = SMP_control(viMPCs_pool, MPClen, vfCxPMs_pool, viINFOs_pool,  MaxTBS,  viCRCs_pool,  viSNRs_meas,  vfCxPMS_meas,
+                            PMslen, SubBN, TxN, isPMok, viTransblock, LyrN,  iSendrN,  iSNRdlyTTI,  iPMIdlyTTI, viCRCblock, viNetTBs)
+
+        _mybase.RQ_encodeControl(Senderbuff, viINFOs_pool, viNetTBs, OTI_python,
+                                 Maxblocksize, num_packet, packet_size, MaxTBS, iSendrN)
+
+        _mybase.RQ_decodePush(viINFOs_pool, Receiverbuff, viCRCs_pool, OTI_python,
+                              totalRecvr, iRecvrM, iSendrN, MaxTBS, Maxblocksize)
+                                 #*******************************************************************************************************************************************************************************
         #vfCxSCv_RX.fill(0.0);    #reset receive channels
         #vfSEQs_all.fill(0.0);    #reset DMRSs
         #smpBS = 0;  smpEs = 0;

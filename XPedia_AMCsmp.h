@@ -15,7 +15,7 @@ extern "C" {
 
 
     void   SMP_init(int* viMPCs_list, int MPClen, int NetTBS, int QamNUM, int iModuType, float fEsN0_dB,int BSnum, int RXnum,  int PMslen, int iAMC_ON=1);
-    int SMP_control(int *viMPCs_list, int MPClen, float *vfCxPM_SBD, int *viINFOs_list, int MaxTBS, int *viCRC_list, float *vfSNR_list, float *vfCxPMsmeas, int PMslen, int SubBN, int TxN, int isPMok, int *viTransblock, int LyrN, int BSnum, int iSNRdlyTTI, int iPMIdlyTTI, int *viCRCblock);
+    int SMP_control(int *viMPCs_list, int MPClen, float *vfCxPM_SBD, int *viINFOs_list, int MaxTBS, int *viCRC_list, float *vfSNR_list, float *vfCxPMsmeas, int PMslen, int SubBN, int TxN, int isPMok, int *viTransblock, int LyrN, int BSnum, int iSNRdlyTTI, int iPMIdlyTTI, int *viCRCblock, int *viNetTBs);
 
     void   CxHs_merge(float* vfCxHs_full, float* vfCxHs_part, int RxM, int MaxN, int LyrN, int LyrBias, int MATnum);
     void   CxMat_pickCOLS(float* vfCxM_pick, float* vfCxM_src, int iRow, int iCol, int PickN, int iFrom);

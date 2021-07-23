@@ -116,7 +116,7 @@ Change History
   _NEW_INIT()
   _NEW_FLT0(vfCxPM_SBD, PMslen) //MIMO_precoderRST( vfCxPM_SBD,  SubBN, TXnum,  LyrN);
 
-      _LOOPUP_LT(cnt, 0, BSnum)
+  _LOOPUP_LT(cnt, 0, BSnum)
   {
     pMPCmem = viMPCs_list + cnt * MPClen;
     *pMPCmem++ = 1;
@@ -132,7 +132,7 @@ Change History
   _NEW_FREE()
 }
 
-int SMP_control(int *viMPCs_list, int MPClen, float *vfCxPM_SBD, int *viINFOs_list, int MaxTBS, int *viCRC_list, float *vfSNR_list, float *vfCxPMsmeas, int PMslen, int SubBN, int TxN, int isPMok, int *viTransblock, int LyrN, int BSnum, int iSNRdlyTTI, int iPMIdlyTTI, int *viCRCblock)
+int SMP_control(int *viMPCs_list, int MPClen, float *vfCxPM_SBD, int *viINFOs_list, int MaxTBS, int *viCRC_list, float *vfSNR_list, float *vfCxPMsmeas, int PMslen, int SubBN, int TxN, int isPMok, int *viTransblock, int LyrN, int BSnum, int iSNRdlyTTI, int iPMIdlyTTI, int *viCRCblock, int *viNetTBs)
 /* Symm. & Sync. Multi-Point transmission control
 *  viMPCs_list  : list of MPC param. groups
 *  MPClen       : length of each group of AMC params
@@ -163,11 +163,12 @@ Change History
 
   MEMCHK(viMPCs_list, BSnum * MPClen)
   MEMCHK(viINFOs_list, BSnum * MaxTBS)
-      MEMCHK(viCRC_list, BSnum) MEMCHK(vfSNR_list, BSnum) MEMCHK(vfCxPMsmeas, BSnum * PMslen)
+  MEMCHK(viCRC_list, BSnum)
+  MEMCHK(vfSNR_list, BSnum) MEMCHK(vfCxPMsmeas, BSnum * PMslen)
 
-          _NEW_INIT() _NEW_FLT0(vfCxPMsnew, PMslen)
+      _NEW_INIT() _NEW_FLT0(vfCxPMsnew, PMslen)
 
-              int iLyrPerBS = MAXOP((LyrN / BSnum), 1);
+          int iLyrPerBS = MAXOP((LyrN / BSnum), 1);
   if (iLyrPerBS * BSnum < LyrN)
   {
     iLyrPerBS += 1;
@@ -209,17 +210,26 @@ Change History
     //   viTransblock[4+psAMC->m_Transtimes]++;
     // }
 
+    // //succeed after 4 times trans
+    // if (iNACK == 1 && psAMC->m_Transtimes == MAX_TRANSTIMES - 1)
+    // {
+    //   viTransblock[1]++;
+    // }
+    // //number of TB with different re-trans times
+    // if (iNACK == 0 && psAMC->m_Transtimes == MAX_TRANSTIMES - 1)
+    // {
+    //   viTransblock[0]++;
+    // }
     //succeed after 4 times trans
-    if (iNACK == 1 && psAMC->m_Transtimes == MAX_TRANSTIMES - 1)
+    if (iNACK == 1 && psAMC->m_Transtimes == 0)
     {
       viTransblock[1]++;
     }
     //number of TB with different re-trans times
-    if (iNACK == 0 && psAMC->m_Transtimes == MAX_TRANSTIMES - 1)
+    if (iNACK == 0 && psAMC->m_Transtimes == 0)
     {
       viTransblock[0]++;
     }
-
     //AMC_control((int*)psAMC, piCWBITs, MaxTBS,  iNACK,  fEsN0_meas, iSNRdlyTTI,LyrN);   // iLyrN0 ==> LyrN !!!  it is a bug !!!
     AMC_control((int *)psAMC, piCWBITs, MaxTBS, viCRC_list[cnt], fEsN0_meas, iSNRdlyTTI, iLyrN0);
 
@@ -258,6 +268,10 @@ Change History
   MEM_5INT(pMPCmem, RvID0, RVlen0, NetTBS0, QamType0, iMCS0)
   pMPCmem = viMPCs_list + 1 * MPClen;
   MEM_5INT(pMPCmem, RvID1, RVlen1, NetTBS1, QamType1, iMCS1)
+
+  *viNetTBs = NetTBS0;
+  *(viNetTBs + 1) = NetTBS1;
+
   if ((iMCS0 != iMCS1) || (QamType0 != QamType1) || (NetTBS0 != NetTBS1))
   {
     int iTST = 3;
