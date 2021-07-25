@@ -143,10 +143,10 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     viCRCblock = newINTS(iSendrN*2);
 
 ###################################################RaptorQ related############################################
-    num_packet=100
-    packet_size=10
+    num_packet=25
+    packet_size=25
     # Maxblocksize = int((math.pow(2, 16)-1)*56403*4);#bytes,max overhead: 4
-    Maxblocksize = 10000  # 1GB
+    Maxblocksize = 200000  # 1GB
     Senderbuff = newBYTES(Maxblocksize*iSendrN);#bytes,save sender encoded block data
     Receiverbuff = newBYTES(Maxblocksize*iSendrN*iRecvrM);
     totalRecvr = newINTS(iSendrN*iRecvrM);#total received symbols numbers
@@ -160,12 +160,12 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     #RQ init
     for i in range(iSendrN):
         OTI_python[i].Endflag=True;
-        OTI_python[i].overhead=3;#开销设置为3
+        OTI_python[i].overhead=2;#开销设置为3
     RQ_encodeControl = libRQ.RQ_encodeControl
     RQ_decodePush=libRQ.RQ_decodePush
     RQ_decodeControl=libRQ.RQ_decodeControl
     RQ_encodeControl.argtypes = ( cUINT8, cINTS,cINTS, ctypes.POINTER(OTI_pythonOrg), ctypes.c_ulong  ,ctypes.c_size_t  ,ctypes.c_size_t  ,cINT  ,cINT  )
-    RQ_decodePush.argtypes = (cINTS, cUINT8, cINTS, ctypes.POINTER(OTI_pythonOrg),cINTS, cINT, cINT, cINT, ctypes.c_ulong)
+    RQ_decodePush.argtypes = (cINTS, cUINT8, cUINT8, cINTS, ctypes.POINTER(OTI_pythonOrg), cINTS, cINT, cINT, cINT, ctypes.c_ulong)
     RQ_decodeControl.argtypes = (cUINT8, ctypes.POINTER(OTI_pythonOrg), cINTS, cINT, cINT, ctypes.c_ulong)
 ##############################################################################################################
 
@@ -208,14 +208,12 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
         SCM3Dnet_mimoFD(vfRxOFDMs_pool, vfTxOFDMs_pool, strCIRfile,  RxM,  TxN,  RBnum,  RBfrom,  fNoisePwr, vfCxSCHorg_pool,  iSendrN,  iRecvrM,  cntTTI);
         vfTTIsnrSUM[cntTTI] = NR_ice(vfCxICEs_pool, iHElen, viMPCs_pool,  MPClen,  RBnum ,  SubBN,  PMslen,  isPMok, vfCxPMs_pool,  RxM,  TxN,  vfCxSCHorg_pool, fNoisePwr,  iSendrN, iRecvrM, viSNRs_meas); #ideal channe estimation
         NRprecoder_TypeII(vfCxPMS_meas,  viMPCs_pool,  MPClen,  SubBN,  PMslen, RBnum, vfCxSCHorg_pool, RxM, TxN, TXantC, TXxplN, iSendrN);
-
-        #iOK_BITS = NR_receiver(viCRC, viMPCs_pool, MPClen, vfCxSCv_RX,  vfCxICEs_RX,  RBnum,  RBfrom,  RxM,  LyrN, LyrN, vfSEQs_all,  HARQlen, vfHARQllr_pool ,  CWnum,  fNoisePwr);
-        #iOK_BITS = NR_receiver(viCRCs_pool, viMPCs_pool, MPClen, vfRxOFDMs_pool,  vfCxICEs_pool,  RBnum,  RBfrom,  RxM,  LyrN, LyrN, vfSEQs_all,  HARQlen, vfHARQllr_pool ,  CWnum,  fNoisePwr);
-        #NR_receiverS(int* viCRC_pool, int CRClen, int* viMPC_pool, int MPClen, float* vfCxOFDMs_pool, float* vfCxHe_pool, int iHElen, int RBnum, int RBfrom, int RxM, int SEQmaxN,float* vfCxSEQs_pool, int HARQlen, float* vfHARQllr_pool, int iSendrN, int iRecvrM, float fNoisePwr);
         NR_receiverS(viCRCs_pool, iSendrN, viMPCs_pool, MPClen, vfRxOFDMs_pool,  vfCxICEs_pool, iHElen ,  RBnum,  RBfrom,  RxM,  SEQmaxN, vfSEQs_all,  HARQlen, vfHARQllr_pool,  iSendrN, iRecvrM,  fNoisePwr, viCRCblock,viCRCfull_pool);
 
+        # print("\n")
+        # print(cntTTI)
 
-        RQ_decodePush(viINFOs_pool, Receiverbuff, viCRCfull_pool, byref(OTI_python[0]),
+        RQ_decodePush(viINFOs_pool,Senderbuff, Receiverbuff, viCRCfull_pool, byref(OTI_python[0]),
                               totalRecvr, iRecvrM, iSendrN, MaxTBS, Maxblocksize)
 
         iOK_BITS = RQ_decodeControl(Receiverbuff, byref(OTI_python[0]),totalRecvr, iRecvrM, iSendrN, Maxblocksize);
@@ -226,23 +224,6 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
         for cntBS in range(CWnum)  :
             iNACK = viCRCs_pool[cntBS];   errDEC += iNACK;  sumDEC += 1;    # viCRCs_pool[cntBS] = iNACK;
             #if ( 0 == iNACK ) :     fSumTP += float(NetTBS)*1.0e-3;
-        # ********************************************************************************************************************************************************
-        # ******************************** MIMO equalizer ********************************************************************************************************
-        #NRofdm_equalizer(vfCxQams_RX, SCnum, RxM, LyrN, vfCxSCv_RX, vfSEQs_all, fNoisePwr ,vfCxICEs_RX, ModuType, isLMMSE); # (ModuType = 0) ==> equalization wo. demod
-        # ********************************************************************************************************************************************************
-        #for cntBS in range(iSendrN) :
-        #    (LyrN0, LyrBias,RvID,RVlen,NetTBS,ModuType,iMCS) = getMPCs(viMPCs_pool[cntBS*MPClen:(cntBS+1)*MPClen]);  QamNUM=LyrN0*SUMsc;  QamB=GetQamBITS(ModuType);
-        #    if (0 == LyrN0) : continue;
-        #    # ****************************************************************************************************************************************************
-        #    # ******************************** Demodulation and decoder for layers of current base staion  *******************************************************
-        #    # ****************************************************************************************************************************************************
-        #    if  isLMMSE :  CxMat_pickCOLS(vfCxQams, vfCxQams_RX, SUMsc, LyrN,  LyrN0, LyrBias);      CxVEC_qamDemod(vfRVllrs, vfCxQams,  QamNUM,  ModuType,  0.5*fNoisePwr);
-        #    else        :  Mat_pickCOLS(vfRVllrs, vfCxQams_RX, SUMsc, LyrN*QamB, LyrN0*QamB, LyrBias*QamB);   #pick llrs for current link
-        #    vfHARQ_llr  = vfHARQllr_pool[cntBS*HARQlen:(cntBS+1)*HARQlen];
-        #    TurboDecoder_ITF(viCRC, vfRVllrs, QamNUM, NetTBS, vfHARQ_llr, ModuType, RvID,viDECbits,16); # TurboDecoder_ITF(viCRC, vfRVllrs, QamNUM, NetTBS, vfHARQ_llr, ModuType, RvID,viDECbits,16); # MaxIter=16
-        #    # ****************************************************************************************************************************************************
-        #    iNACK = viCRC[0];  viCRCs_pool[cntBS] = iNACK;  errDEC += iNACK;  sumDEC += 1;
-        #    if ( 0 == iNACK ) : fSumTP += float(NetTBS)*1.0e-3;
         sumTTI += 1;
         if(( 0 == cntTTI%200 ) and (0 < cntTTI) )  or (cntTTI == (TTInum-1)):    #if(( 0 == cntTTI%500 ) and (0 < cntTTI) ):
             fAvgEsN0 = 10*np.log10(np.mean(vfTTIsnrSUM[0:sumTTI]));   #print(vfTTI_SNRs[cntTTI*iSendrN:(cntTTI+1)*iSendrN],vfTTIsnrSUM[cntTTI] )
@@ -262,82 +243,6 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
         viTransblock[0], viTransblock[1], viTransblock[2], viTransblock[3], viTransblock[4], viTransblock[5], viTransblock[6], viTransblock[7]))
     # exec(open('Plot_Harq.py').read())
     return (bler,fAvgEsN0,errDEC,sumTTI,fAvgTP_se);
-
-
-
-
-
-
-# exec(open('PY3ITF_mmimo.py').read());  crcBITS=6120+24; PUSCH_corelinkX(5.0,crcBITS-24,10,64,100*50,30.0,3,1);    # 10RB+64QAM
-def PUSCH_corelinkX(fEsN0cfg, NetTBScfg, RBnum,  ModuType, TTIcfg, fDoppler, FadingT,runbar_on) :
-    ts_start = getTICK();  iBatchN = 500;            TTInum = iBatchN*int(TTIcfg/iBatchN);           TTIlen = 30720;            FFTlen = 2048;
-    TxN    = 64;             RxM   = 2;              LyrN   = 1;     OFDMnum  = 14;   DMRSnum = 2;   DOFDMn = OFDMnum-DMRSnum;
-    SCnum  = RBnum*12;      QamNUM = SCnum*LyrN*12;  RBfrom = 0;     ModuTmax = 256;  RBfrom  = 0;   MaxTBS = 75376+24;         RVmax  = QamNUM*8;
-    iFadingON = FadingT;    SubBN  = int(RBnum/5);
-    if( 0 == fDoppler ): iFadingON = 0;
-
-    viCRC       = newINTS(4);                          viINFObits  = newINTS(MaxTBS);
-    viRVbits    = newINTS(RVmax);                      vfRVllrs    = newFLTS(RVmax);                       viDECbits   = newINTS(MaxTBS);
-    vfTTItxsig  = newFLTS(TTIlen*2);                   vfSEQs_org  = newFLTS(2*SCnum*2);                   vfCxQamS    = newFLTS(QamNUM*2);
-    vfTTIRXsig  = newFLTS(TTIlen*2);                   vfSEQs_rx   = newFLTS(2*SCnum*2);                   vfCxQams_rx = newFLTS(QamNUM*2);
-    vfHARQ_llr  = newFLTS(3*(MaxTBS+(24+4)*100));      viAMCs      = newINTS(100)                           #viAMCs      = newiSTRUC(_str('stAMC'));  vfCParams   = newSTRUC(_str('stTurboCParam'));
-    vfPathCoeff = newFLTS(TTInum*OFDMnum*RxM*16*2);    vfTTIesn0   = newFLTS(TTInum);                      vfTTImcs    = newFLTS(TTInum);
-    vfCxSCv_rx  = newFLTS(OFDMnum*SCnum*RxM*2);        vfCxICEs_RX = newFLTS(OFDMnum*SCnum*RxM*LyrN*2);    vfCxPM_SBD  = newFLTS(SubBN*TxN*LyrN*2);
-    vfCxSCV_TX  = newFLTS(OFDMnum*SCnum*TxN*2);        vfCxHs_ice  = newFLTS(OFDMnum*SCnum*RxM*TxN*2);     viTTIs_tbs  = newINTS(TTInum);
-    vfCxSCs_lyr = newFLTS(OFDMnum*SCnum*LyrN*2);       pTTInum     = newINTS(2);                           vfTTIsnrDB  = newFLTS(TTInum);
-    CxSEQ_ZCseq(vfSEQs_org[SCnum*0:SCnum*2],  SCnum, 1,0); # ZCroot = 1; ZCoffset = 0
-    CxSEQ_ZCseq(vfSEQs_org[SCnum*2:SCnum*4],  SCnum, 1,0);
-
-    sumTTI = 0; cntERR = 0;  fSumTP = 0;  fEsN0meas = fEsN0cfg;           SampeN = 0;    fAvgEsN0 = fEsN0cfg;    #fNoisePwr   = math.pow(10,-0.1*fEsN0cfg);
-    AMC_on = 1; RvID   = 0;   iNACK = 0;     minNTB = maxNTB = NetTBScfg; minQmT = maxQmT = ModuType;            cntBA = 0;
-    RandSeed_INIT(13457);
-    NRslot_config(OFDMnum,1);    #SLOTlen=OFDMnum, isNR = 1, NR numerology!!!
-    strCIRfile = 'MMIMOlineOmniAnt_20SEGx600TTI_RXxpl2xTXxpl2xRXantM1xTXantN32_MaxPATH30.bin';  TXantC = 8; TXxplN = 2;
-    #strCIRfile = 'MMIMO_losOmniAnt_20SEGx600TTI_RXxpl2xTXxpl2xRXantM1xTXantN32_MaxPATH30.bin';  TXantC = 8; TXxplN = 2;
-    #fAvgSCpwr = MIMOcirs_brief(pTTInum,  RxM ,  TxN , _str(strCIRfile));
-    fAvgSCpwr = 5.4; print(fAvgSCpwr)
-    fNoisePwr = math.pow(10,-0.1*fEsN0cfg)*fAvgSCpwr;
-    AMC_init(viAMCs, NetTBScfg, QamNUM, ModuType, fEsN0meas, RxM, AMC_on);
-
-    for cntTTI in range(TTInum) :
-        if GERROR_chk(10) : break;
-        AMC_control(viAMCs,viINFObits,MaxTBS, iNACK ,fEsN0meas,0,1);      viTTIs_tbs[cntTTI] = viAMCs[2];
-        RvID   = viAMCs[0];            RVlen = viAMCs[1];             NetTBS = viAMCs[2];              ModuType = viAMCs[3];            vfTTImcs[cntTTI] = float(viAMCs[4]);
-        minNTB = min(minNTB,NetTBS);  maxNTB = max(maxNTB,NetTBS);    minQmT = min(minQmT,ModuType);   maxQmT = max(maxQmT,ModuType);
-
-
-        TurboEncoder_ITF(viRVbits,  RVlen,viINFObits,  NetTBS,  ModuType,   RvID ); # TurboEncoder_ITF(viRVbits,  RVlen,viINFObits,  NetTBS, vfCParams,  ModuType,  1,  RvID ); # CWnum = 1
-
-        Qam_Modu_REL(vfCxQamS, viRVbits,  QamNUM,  ModuType);
-
-        NXsubframe_mappingFD(vfCxSCs_lyr, LyrN, DOFDMn, vfCxQamS, DMRSnum, vfSEQs_org,   RBnum,  RBfrom, 0);
-        MIMO_precoder(vfCxSCV_TX, vfCxPM_SBD,  vfCxSCs_lyr,  TxN,  LyrN ,  SubBN,  RBnum,  OFDMnum, cntTTI);
-
-        MIMO_channelFD(vfCxSCv_rx, vfCxSCV_TX, _str(strCIRfile), OFDMnum,   RBnum,   RxM, TxN, cntTTI,  RBfrom,  fNoisePwr, vfCxHs_ice);
-
-        fAvgEs = MIMO_precodingH(vfCxICEs_RX, vfCxHs_ice, vfCxPM_SBD ,  RxM,   TxN,  LyrN ,  SubBN,  RBnum,  OFDMnum); # ICE and ideal EsN0
-        vfTTIesn0[cntTTI]  = fAvgEs/fNoisePwr;
-        vfTTIsnrDB[cntTTI] = 10*np.log10(vfTTIesn0[cntTTI]);
-        MIMO_precoderTypeII(vfCxPM_SBD , vfCxHs_ice,   RxM,   TxN, LyrN ,  SubBN,  RBnum, TXantC, TXxplN);
-        fEsN0meas = vfTTIsnrDB[cntTTI]; #vfTTIesn0[cntTTI];
-
-        NRofdm_equalizer(vfRVllrs,   SCnum, RxM, 1,  vfCxSCv_rx, vfSEQs_org, fNoisePwr ,vfCxICEs_RX, ModuType, 1);
-        #CxVEC_qamDemod(vfRVllrs,vfCxQams_rx,   QamNUM,  ModuType,0.5*fNoisePwr);
-
-        TurboDecoder_ITF(viCRC, vfRVllrs, QamNUM, NetTBS, vfHARQ_llr, ModuType, RvID,viDECbits,16); # MaxIter=16
-
-
-        iNACK = viCRC[0]; cntERR += iNACK;  sumTTI += 1;
-        if ( 0 == iNACK ) : fSumTP += float(NetTBS)*1.0e-3;
-        if(( 0 == cntTTI%500 ) and (0 < cntTTI) ):  print('....sumTTI={:d}  errTTI={:d}  AvgTPmbps={:f}  avgSpecEff={:f}'.format(sumTTI,cntERR,fSumTP/float(sumTTI),fSumTP/float(sumTTI*RBnum*12*12*0.001)));
-    if  iFadingON :  fAvgEsN0 = 10*np.log10(np.mean(vfTTIesn0[0:sumTTI]));
-    GDB_svMat(_str('EsN0_list'), vfTTIsnrDB, 1, TTInum);
-    GDB_svIMat(_str('TBS_list'), viTTIs_tbs, 1, TTInum);
-    if 0 < sumTTI : bler = float(cntERR)/float(sumTTI); fSpecEFF = (1.0-bler)*float(NetTBS)/float(QamNUM); avgTP = fSumTP/float(sumTTI); fAvgTP_se = avgTP/float(RBnum*12*12*0.001); # avg. SE w.r.t data SCs occupied!!!
-    ts_secs  = getTUCK(ts_start);
-    if runbar_on : print('....BLER={:.5f}@EsN0={:.2f}dB:{:.2f}dB...NetTBS={:d}~{:d}@QamNUM={:d}..ModuType={:d}~{:d}...avgSE={:f}..TPmbps={:f}...{:d}@{:d}TTIs...{:.2f}seconds'.format(bler,fEsN0cfg,fAvgEsN0,minNTB,maxNTB,QamNUM,minQmT,maxQmT,fAvgTP_se,avgTP,cntERR,sumTTI,ts_secs))
-    gMEM_free(1); #miQ_close(1);
-    return (bler,fAvgEsN0,cntERR,sumTTI,fAvgTP_se);
 
 iSNRdly=2;iPMIdly=2; LyrN=2; iSendrN=2; iRecvrM=1;
 PUSCH_corelink(10.0,100*50,10,iSNRdly,iPMIdly,LyrN,iSendrN,iRecvrM,1,1,1,1);

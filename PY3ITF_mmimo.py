@@ -143,26 +143,26 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     viCRCblock = newINTS(iSendrN*2);
 
 ###################################################RaptorQ related############################################
-    num_packet=2
-    packet_size=2
-    # Maxblocksize = int((math.pow(2, 16)-1)*56403*4);#bytes,max overhead: 4
-    Maxblocksize = 1000;#1GB
-    Senderbuff = newBYTES(Maxblocksize*iSendrN);#bytes,save sender encoded block data
-    Receiverbuff = newBYTES(Maxblocksize*iSendrN*iRecvrM);
-    totalRecvr = newINTS(iSendrN*iRecvrM);#total received symbols numbers
+    # num_packet=2
+    # packet_size=2
+    # # Maxblocksize = int((math.pow(2, 16)-1)*56403*4);#bytes,max overhead: 4
+    # Maxblocksize = 1000;#1GB
+    # Senderbuff = newBYTES(Maxblocksize*iSendrN);#bytes,save sender encoded block data
+    # Receiverbuff = newBYTES(Maxblocksize*iSendrN*iRecvrM);
+    # totalRecvr = newINTS(iSendrN*iRecvrM);#total received symbols numbers
     viNetTBs = newINTS(iSendrN);
     viCRCfull_pool= newINTS(iSendrN*iRecvrM);#本次TTI每个接收机对每个发送信息的接收情况
-    class OTI_pythonOrg(Structure):
-      _fields_ = [("F",c_size_t),("T",c_size_t),("AL",c_size_t),
-                  ("Z",c_size_t),("N",c_size_t),("Kt",c_size_t),
-                  ("overhead",c_float),("srcsymNum",c_uint32),
-                  ("transNum",c_uint32),("Endflag",c_bool),]
-    OTI_python=(OTI_pythonOrg*iSendrN)()
-    #RQ init
-    for i in range(iSendrN):
-        OTI_python[i].Endflag=True;
-        OTI_python[i].overhead=3;#开销设置为3
-    RQ_encodeControl = libRQ.RQ_encodeControl;  RQ_encodeControl.argtypes = ( cUINT8, cINTS,cINTS, ctypes.POINTER(OTI_pythonOrg), ctypes.c_ulong  ,ctypes.c_size_t  ,ctypes.c_size_t  ,cINT  ,cINT  );
+    # class OTI_pythonOrg(Structure):
+    #   _fields_ = [("F",c_size_t),("T",c_size_t),("AL",c_size_t),
+    #               ("Z",c_size_t),("N",c_size_t),("Kt",c_size_t),
+    #               ("overhead",c_float),("srcsymNum",c_uint32),
+    #               ("transNum",c_uint32),("Endflag",c_bool),]
+    # OTI_python=(OTI_pythonOrg*iSendrN)()
+    # #RQ init
+    # for i in range(iSendrN):
+    #     OTI_python[i].Endflag=True;
+    #     OTI_python[i].overhead=3;#开销设置为3
+    # RQ_encodeControl = libRQ.RQ_encodeControl;  RQ_encodeControl.argtypes = ( cUINT8, cINTS,cINTS, ctypes.POINTER(OTI_pythonOrg), ctypes.c_ulong  ,ctypes.c_size_t  ,ctypes.c_size_t  ,cINT  ,cINT  );
 ##############################################################################################################
 
     vfTTI_SNRs  = newFLTS(TTInum*iSendrN);                  vfTTIsnrSUM = newFLTS(TTInum);           vfTTIMbps = newFLTS(TTInum);
@@ -196,9 +196,9 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
         # ******************************** Multi. Point Control *************************************************************************************************************************
         CWnum = SMP_control(viMPCs_pool, MPClen, vfCxPMs_pool, viINFOs_pool,  MaxTBS,  viCRCs_pool,  viSNRs_meas,  vfCxPMS_meas,
                             PMslen, SubBN, TxN, isPMok, viTransblock, LyrN,  iSendrN,  iSNRdlyTTI,  iPMIdlyTTI, viCRCblock, viNetTBs)
-        print(viNetTBs)
-        libRQ.RQ_encodeControl(Senderbuff, viINFOs_pool, viNetTBs, byref(OTI_python[0]),
-                                 Maxblocksize, num_packet, packet_size, MaxTBS, iSendrN)
+        # print(viNetTBs)
+        # libRQ.RQ_encodeControl(Senderbuff, viINFOs_pool, viNetTBs, byref(OTI_python[0]),
+        #                          Maxblocksize, num_packet, packet_size, MaxTBS, iSendrN)
 
                                  #*******************************************************************************************************************************************************************************
         #vfCxSCv_RX.fill(0.0);    #reset receive channels
@@ -246,13 +246,13 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
         #iOK_BITS = NR_receiver(viCRC, viMPCs_pool, MPClen, vfCxSCv_RX,  vfCxICEs_RX,  RBnum,  RBfrom,  RxM,  LyrN, LyrN, vfSEQs_all,  HARQlen, vfHARQllr_pool ,  CWnum,  fNoisePwr);
         #iOK_BITS = NR_receiver(viCRCs_pool, viMPCs_pool, MPClen, vfRxOFDMs_pool,  vfCxICEs_pool,  RBnum,  RBfrom,  RxM,  LyrN, LyrN, vfSEQs_all,  HARQlen, vfHARQllr_pool ,  CWnum,  fNoisePwr);
         #NR_receiverS(int* viCRC_pool, int CRClen, int* viMPC_pool, int MPClen, float* vfCxOFDMs_pool, float* vfCxHe_pool, int iHElen, int RBnum, int RBfrom, int RxM, int SEQmaxN,float* vfCxSEQs_pool, int HARQlen, float* vfHARQllr_pool, int iSendrN, int iRecvrM, float fNoisePwr);
-        NR_receiverS(viCRCs_pool, iSendrN, viMPCs_pool, MPClen, vfRxOFDMs_pool,  vfCxICEs_pool, iHElen ,  RBnum,  RBfrom,  RxM,  SEQmaxN, vfSEQs_all,  HARQlen, vfHARQllr_pool,  iSendrN, iRecvrM,  fNoisePwr, viCRCblock,viCRCfull_pool);
+        iOK_BITS=NR_receiverS(viCRCs_pool, iSendrN, viMPCs_pool, MPClen, vfRxOFDMs_pool,  vfCxICEs_pool, iHElen ,  RBnum,  RBfrom,  RxM,  SEQmaxN, vfSEQs_all,  HARQlen, vfHARQllr_pool,  iSendrN, iRecvrM,  fNoisePwr, viCRCblock,viCRCfull_pool);
 
 
-        libRQ.RQ_decodePush(byref(viINFOs_pool), byref(Receiverbuff), byref(viCRCfull_pool), byref(OTI_python),
-                              byref(totalRecvr), c_int(iRecvrM), c_int(iSendrN), c_int(MaxTBS), c_int(Maxblocksize))
+        # libRQ.RQ_decodePush(byref(viINFOs_pool), byref(Receiverbuff), byref(viCRCfull_pool), byref(OTI_python),
+        #                       byref(totalRecvr), c_int(iRecvrM), c_int(iSendrN), c_int(MaxTBS), c_int(Maxblocksize))
 
-        iOK_BITS = libRQ.RQ_decodeControl(byref(Receiverbuff), byref(OTI_python),byref(totalRecvr), c_int(iRecvrM), c_int(iSendrN), c_int(Maxblocksize));
+        # iOK_BITS = libRQ.RQ_decodeControl(byref(Receiverbuff), byref(OTI_python),byref(totalRecvr), c_int(iRecvrM), c_int(iSendrN), c_int(Maxblocksize));
 
         fTPMbps =  float(iOK_BITS)*1.0e-3;      vfTTIMbps[cntTTI] =  fTPMbps;  fSumTP  += fTPMbps;    vfTTI_SNRs[cntTTI*iSendrN:(cntTTI+1)*iSendrN] = viSNRs_meas;
         # print('cntTTI:{:d},,,transtime:{:d},,,iOK_BITS:{:d},,,,transTime1:{:d},,,,transTime2:{:d},,,,INACK1:{:d},,,,INACK1:{:d},,,,viCRCblock1:{:d},,,,viCRCblock2:{:d}'.format(

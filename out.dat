@@ -1,0 +1,7 @@
+ %  @@@@ gSCM3D_CarrierGHz = 3.500000 !!!!,   <RadioSignalBASE_FadingSCMcfg.c> <SCM3Denv_init> <668>  
+ %  @@@@ gSCM3D_isLSPcfg_4G = 0 !!!!,   <RadioSignalBASE_FadingSCMcfg.c> <SCM3Denv_getLspRayCFG4g> <145>  
+ %  @@@@ gSCM3D_CalibP1_VShapingN = 1 !!!!,   <RadioSignalBASE_FadingSCM.c> <SCM3D_rayAntGain> <1383>  
+ %  @@@@ gSCM3D_saveSCHfile = 0 !!!!,   <RadioSignalBASE_FadingSCM.c> <SCM3Dbulk_FDFadingStaggerS> <586>  
+INFO!!!<RadioSignalBASE_FadingSCM.c,SCM3Dbulk_FDFadingStaggerS,598>  MMIMO_nlosOmniAnt_10SEGx1000TTI_RXxpl2xTXxpl2xRXantM1xTXantN1_MaxPATH30.bin  exists, reused!!!   !!!  
+ %  @@@@ gMIMO_RandomPrecoding_ON = 1 !!!!,   <XPedia_AMCsmp.c> <SMP_control> <162>  
+ %  @@@@ gMPC_SoftCombine_ON = 1 !!!!,   <XPedia_Transceiver.c> <NR_receiverS> <291>  
