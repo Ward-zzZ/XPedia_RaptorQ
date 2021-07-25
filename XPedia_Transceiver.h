@@ -16,7 +16,7 @@ extern "C" {
 
     void   NR_transmitterS(float* vfCxTxOFDMs_pool, int TxN, int* viMPC_pool, int MPClen, int* viSrcBITS_pool, int MaxTBS, int RBnum, int RBfrom, int SEQmaxN,float* vfCxSEQs_pool, int SubBN, int PMlen, float* vfCxSubBPMs_pool,int isPMok,int iSenderN);
 
-    int NR_receiverS(int *viCRC_pool, int CRClen, int *viMPC_pool, int MPClen, float *vfCxOFDMs_pool, float *vfCxHe_pool, int iHElen, int RBnum, int RBfrom, int RxM, int SEQmaxN, float *vfCxSEQs_pool, int HARQlen, float *vfHARQllr_pool, int iSendrN, int iRecvrM, float fNoisePwr, int *viCRCblock);
+    int NR_receiverS(int *viCRC_pool, int CRClen, int *viMPC_pool, int MPClen, float *vfCxOFDMs_pool, float *vfCxHe_pool, int iHElen, int RBnum, int RBfrom, int RxM, int SEQmaxN, float *vfCxSEQs_pool, int HARQlen, float *vfHARQllr_pool, int iSendrN, int iRecvrM, float fNoisePwr, int *viCRCblock, int *viCRCfull_pool);
 
     float  NR_ice(float* vfCxHes_pool,int iHElen, int* viMPC_pool, int MPClen, int RBnum , int SubBN, int PMslen, int isPMok, float* vfCxPMs_pool, int RxM, int TxN, float* vfCxSCHorg_pool,float fNoisePwr, int iSendrN, int iRecvrM, float *vfSNRdB_pool);
     void   NRprecoder_TypeII(float* vfCxPMs_pool, int* viMPC_pool, int MPClen, int SubBN, int PMslen, int RBnum, float* vfCxSCHorg_pool, int RxM, int TxN, int TXantC, int TXxplN, int iSendrN);

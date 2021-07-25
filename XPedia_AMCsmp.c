@@ -164,7 +164,8 @@ Change History
   MEMCHK(viMPCs_list, BSnum * MPClen)
   MEMCHK(viINFOs_list, BSnum * MaxTBS)
   MEMCHK(viCRC_list, BSnum)
-  MEMCHK(vfSNR_list, BSnum) MEMCHK(vfCxPMsmeas, BSnum * PMslen)
+  MEMCHK(vfSNR_list, BSnum)
+  MEMCHK(vfCxPMsmeas, BSnum * PMslen)
 
       _NEW_INIT() _NEW_FLT0(vfCxPMsnew, PMslen)
 
@@ -193,6 +194,7 @@ Change History
     *pMPCmem++ = SumN;
     SumN += iLyrN0;
     psAMC = (stAMC *)pMPCmem;
+
     if (0 == iLyrN0)
     {
       AMC_rst((int *)psAMC);
@@ -268,9 +270,10 @@ Change History
   MEM_5INT(pMPCmem, RvID0, RVlen0, NetTBS0, QamType0, iMCS0)
   pMPCmem = viMPCs_list + 1 * MPClen;
   MEM_5INT(pMPCmem, RvID1, RVlen1, NetTBS1, QamType1, iMCS1)
+  // fprintf(stderr, "\ntb1:%d,tb2:%d\n", *(viMPCs_list +( 1 * MPClen+4)), *(viMPCs_list +( 0 * MPClen+4)));
 
-  *viNetTBs = NetTBS0;
-  *(viNetTBs + 1) = NetTBS1;
+  *viNetTBs = *(viMPCs_list +( 1 * MPClen+4));
+  *(viNetTBs + 1) = *(viMPCs_list +( 0 * MPClen+4));
 
   if ((iMCS0 != iMCS1) || (QamType0 != QamType1) || (NetTBS0 != NetTBS1))
   {

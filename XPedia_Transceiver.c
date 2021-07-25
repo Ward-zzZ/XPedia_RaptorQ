@@ -265,7 +265,7 @@ Change History
 
 }
 
-int NR_receiverS(int *viCRC, int CRClen, int *viMPC_pool, int MPClen, float *vfCxOFDMs_pool, float *vfCxHe_pool, int iHElen, int RBnum, int RBfrom, int RxM, int SEQmaxN, float *vfCxSEQs_pool, int HARQlen, float *vfHARQllr_pool, int iSendrN, int iRecvrM, float fNoisePwr, int *viCRCblock)
+int NR_receiverS(int *viCRC, int CRClen, int *viMPC_pool, int MPClen, float *vfCxOFDMs_pool, float *vfCxHe_pool, int iHElen, int RBnum, int RBfrom, int RxM, int SEQmaxN, float *vfCxSEQs_pool, int HARQlen, float *vfHARQllr_pool, int iSendrN, int iRecvrM, float fNoisePwr, int *viCRCblock, int *viCRCfull_pool)
 /*  receivers
 *  viCRC          : CRC for each codeword
 *  viMPC_pool     : pool of MPCs (Multi-Point Coordination scheduling parameter)
@@ -305,6 +305,7 @@ Change History
     _NEW_INT0(viTranstimes, iSendrN)
 
     IVEC_set(viCRC, CRClen,1);
+    IVEC_set(viCRC_pool, iRecvrM * iSendrN, 1);
 
     //viTranstimes=0,update CRCblock
     _LOOPUP_LT(jjj, 0, iSendrN)
@@ -337,7 +338,7 @@ Change History
           //previous transmission is decoded correctly
           if (0 == viCRCblock[jjj]) { continue; }
           if( 0 == viCRCnow[jjj] ) {  piOKBitN[jjj] =  viNetTBS[jjj];   }
-
+          *(viCRCfull_pool + (jjj * iRecvrM + cnt)) = viCRCnow[jjj];
         }
 
 
@@ -357,6 +358,9 @@ Change History
             if( 0 == viMPCcrcS[jjj] ) {
                 viCRC[jjj] = 0;  viOKBitN_pick[jjj] = viNetTBS[jjj];
                 viCRCblock[jjj] = 0;
+                //软合并共享当前packet
+                *(viCRCfull_pool + jjj * iRecvrM + 0) = 0;
+                *(viCRCfull_pool + jjj * iRecvrM + 1) = 0;
             }
 
         }

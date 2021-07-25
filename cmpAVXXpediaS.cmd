@@ -9,7 +9,7 @@ function run_cmd () {
 
 export CFLAGS='-fPIC -m64 -mavx  -O3  -c'
 export LDLIBS_fftw='-I/usr/local/include -L/usr/local/lib -lfftw3f'
-export LDLIBS_XPedia='-L./ -lXpediaBASE '
+export LDLIBS_XPedia='-L./ -Wl,-Bdynamic -lXpediaBASE '
 
 
 run_cmd rm -f XPedia_AMC.o
@@ -38,8 +38,11 @@ run_cmd g++ $CFLAGS  XPedia_Uplink.c  -o XPedia_Uplink.o
 run_cmd rm -f XPedia_Transceiver.o
 run_cmd g++ $CFLAGS  XPedia_Transceiver.c  -o XPedia_Transceiver.o
 
+@REM run_cmd cc -O3 -g -std=c99 -Wall -I. -Ioblas -march=native -funroll-loops -ftree-vectorize -fno-inline -D_DEFAULT_SOURCE -D_FILE_OFFSET_BITS=64  -c -o RaptorQ.o RaptorQ.c
+
 
 run_cmd rm -f libXpedia.so
-run_cmd g++ -shared XPedia_AMC.o  XPedia_CODEC.o XPedia_waveform.o XPedia_SCMlsp.o XPedia_mimo.o XPedia_Uplink.o  XPedia_Transceiver.o $LDLIBS_XPedia   -o libXpedia.so
+run_cmd g++ -shared XPedia_AMC.o  XPedia_CODEC.o XPedia_waveform.o XPedia_SCMlsp.o XPedia_mimo.o XPedia_Uplink.o  XPedia_Transceiver.o  $LDLIBS_XPedia -o libXpedia.so
 
 run_cmd export LD_LIBRARY_PATH=./
+run_cmd python3 run.py

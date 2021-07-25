@@ -7,6 +7,7 @@ import multiprocessing ;  from ctypes import *
 
 cFLTS    = ndpointer(ctypes.c_float, flags="C_CONTIGUOUS");
 cINTS    = ndpointer(ctypes.c_int,   flags="C_CONTIGUOUS");
+cUINT8  = ndpointer(ctypes.c_uint8,   flags="C_CONTIGUOUS");
 cINT     = ctypes.c_int;      cFLT    = ctypes.c_float;      cSTR   = ctypes.c_char_p;
 cLONG    = ctypes.c_long;     cDOUBLE = ctypes.c_double;     cUINT  = ctypes.c_uint32;
 cVPTR    = ctypes.c_void_p;   pVOID   = ctypes.byref(ctypes.c_void_p());  # know-how 2019-04-01

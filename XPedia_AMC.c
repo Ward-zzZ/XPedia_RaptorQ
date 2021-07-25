@@ -364,7 +364,7 @@ Change History
   pstAMC->m_AMC_ON = iAMC_ON;
   pstAMC->m_RBuse = RBnum;
   pstAMC->m_RXnum = iRXnum;
-  pstAMC->m_Transtimes = MAX_TRANSTIMES - 2; //init trans times: MAX_TRANSTIMES - 1 , set 0 in AMC_contorl
+  pstAMC->m_Transtimes = 0; //init trans times: MAX_TRANSTIMES - 1 , set 0 in AMC_contorl
 
   int *vTBS_list = gviTBS_lktbl_1lyr + (RBnum - 1) * MAX_ITBS_N;
   int iminTBS = 0; //  pstAMC->m_RVlen/3;
@@ -527,6 +527,8 @@ Change History
   pstAMC->m_RVlen = vQamB_list[iMCS] * pstAMC->m_QamN; // added by Duan Weiming in 2020-04-02
   pstAMC->m_MCSnow = iMCS;
   pstAMC->m_netTBS = vTBS_list[iITBS];
+  // fprintf(stderr, "\n m_netTBS:%d\n", pstAMC->m_netTBS);
+
   pstAMC->m_QamType = iQamType;
 #ifdef GDB_FLAG
   ERR_LT(3 * (pstAMC->m_netTBS + 24) + 12, pstAMC->m_RVlen)
@@ -591,6 +593,7 @@ Change History
   }
 
   pstAMC->m_RvID = TT;
+
   if (1 == pstAMC->m_AMC_ON)
   {
     AMC_updateMCS(pAMCmem, fEsN0_meas, iDly, iLyrN);

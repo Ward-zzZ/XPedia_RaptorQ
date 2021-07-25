@@ -330,7 +330,6 @@ void RQ_saveEncoded_data(uint8_t *Senderbuff, nanorq *rq, symvec *packets)
 {
   // int packet_size = nanorq_symbol_size(rq); //单位字节,symbol长度
   int packet_size = nanorq_symbol_size(rq); //单位字节
-  int sum = 0;
   struct sym s;
   uint32_t esi;
   uint8_t *data;
@@ -350,7 +349,7 @@ void RQ_saveEncoded_data(uint8_t *Senderbuff, nanorq *rq, symvec *packets)
     for (int m = 0; m < packet_size; m++)
     {
       *Senderbuff = *data;
-      *Senderbuff++;
+      Senderbuff++;
       data++;
     }
   }
@@ -412,7 +411,8 @@ void RQ_encodeControl(uint8_t *Senderbuff,
       struct ioctx *myio_in;
       oti_python->totalTrans = 0;
       oti_python->srcsymNum = (size_t)num_packets;
-      uint8_t *srcData = RQ_encode_init(&rq, &myio_in, num_packets, packet_size, true);
+      // uint8_t *srcData = RQ_encode_init(&rq, &myio_in, num_packets, packet_size, true);
+      RQ_encode_init(&rq, &myio_in, num_packets, packet_size, true);
       symvec packets;
       kv_init(packets);
       RQ_encodedData(rq, myio_in, &packets, oti_python->overhead);
