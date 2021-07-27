@@ -364,7 +364,7 @@ Change History
   pstAMC->m_AMC_ON = iAMC_ON;
   pstAMC->m_RBuse = RBnum;
   pstAMC->m_RXnum = iRXnum;
-  pstAMC->m_Transtimes = 0; //init trans times: MAX_TRANSTIMES - 1 , set 0 in AMC_contorl
+  pstAMC->m_Transtimes = MAX_TRANSTIMES - 2; //init trans times: MAX_TRANSTIMES - 1 , set 0 in AMC_contorl
 
   int *vTBS_list = gviTBS_lktbl_1lyr + (RBnum - 1) * MAX_ITBS_N;
   int iminTBS = 0; //  pstAMC->m_RVlen/3;
@@ -556,8 +556,8 @@ update the transtime times for each TB
   int TT = 0;
 
   //只传输一次
-  // if (MAX_TRANSTIMES - 1 == TTnow)  { TT = 0;  }      // finish 4 times trans ，reset m_Transtimes = 0.
-  // else {TT = TTnow + 1;}                             // update m_Transtimes += 1.
+  if (MAX_TRANSTIMES - 1 == TTnow)  { TT = 0;  }      // finish 4 times trans ，reset m_Transtimes = 0.
+  else {TT = TTnow + 1;}                             // update m_Transtimes += 1.
 
   pstAMC->m_Transtimes = TT;
   return TT;

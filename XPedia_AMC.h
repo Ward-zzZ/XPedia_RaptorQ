@@ -17,7 +17,7 @@
 #define MAX_NetTBS_MAX  75376
 #define MCS_MIN 0
 #define MCS_MAX 28    // limit for only one code block in 10RB case,
-#define MAX_TRANSTIMES 4 //max transmission times for each TB
+#define MAX_TRANSTIMES 3 //max transmission times for each TB
 #endif
 
 

@@ -313,39 +313,50 @@ Change History
             pMPC = viMPC_pool + jjj * MPClen;
             viTranstimes[jjj] = (pMPC)[13];
             viCRCblock[jjj + 2] = (pMPC)[13];
+
             if (viTranstimes[jjj] == 0) { viCRCblock[jjj] = 1; }
         }
-
-    _LOOPUP_LT(cnt, 0 , iRecvrM) {
-        //viMPCs      = viMPC_pool;
-        piOKBitN    = viOKBitN_pool  + cnt*iSendrN;
-        viCRCnow    = viCRC_pool     + cnt*CRClen;
-        vfCxOFDMs   = vfCxOFDMs_pool + cnt*SCsum*RxM*2;
-        vfCxHeS     = vfCxHe_pool    + cnt*iHElen;
-        vfHARQllrS  = vfHARQllr_pool + cnt*iSendrN*HARQlen;    //vfHARQllrS  = vfHARQllr_pool + cnt*HARQlen;
-
-
-
-
-        MPCs_fetch( viLyrN, viSEQfrom, viRvID, viRVlen,  viNetTBS, viModuType, MPClen, viMPC_pool,  iSendrN, SEQmaxN, SumLyrN);
-        NR_receiverORG( viCRCnow, vfCxOFDMs, vfCxHeS,  viNetTBS, viRvID,  RBnum, RBfrom, RxM,  viLyrN, viModuType, SEQmaxN,  viSEQfrom, vfCxSEQs_pool, vfHARQllrS, HARQlen, iSendrN, fNoisePwr, vfMRGllrs_mem);
-
-        VEC_add(vfMPCllrs_sum,vfMPCllrs_sum, vfMRGllrs_mem,  iSendrN*HARQlen);
-
-        INT_ZERO(piOKBitN, iSendrN);
-        _LOOPUP_LT(jjj, 0, iSendrN)
+        // if (viTranstimes[0] == viTranstimes[1])
+        //   fprintf(stderr, "\n 发送方%d,次数:%d\n", viTranstimes[0], viTranstimes[1]);
+        _LOOPUP_LT(cnt, 0, iRecvrM)
         {
-          //previous transmission is decoded correctly
-          if (0 == viCRCblock[jjj]) { continue; }
-          if( 0 == viCRCnow[jjj] ) {  piOKBitN[jjj] =  viNetTBS[jjj];   }
-          *(viCRCfull_pool + (jjj * iRecvrM + cnt)) = viCRCnow[jjj];
-        }
+          //viMPCs      = viMPC_pool;
+          piOKBitN = viOKBitN_pool + cnt * iSendrN;
+          viCRCnow = viCRC_pool + cnt * CRClen;
+          vfCxOFDMs = vfCxOFDMs_pool + cnt * SCsum * RxM * 2;
+          vfCxHeS = vfCxHe_pool + cnt * iHElen;
+          vfHARQllrS = vfHARQllr_pool + cnt * iSendrN * HARQlen; //vfHARQllrS  = vfHARQllr_pool + cnt*HARQlen;
 
+          MPCs_fetch(viLyrN, viSEQfrom, viRvID, viRVlen, viNetTBS, viModuType, MPClen, viMPC_pool, iSendrN, SEQmaxN, SumLyrN);
+          NR_receiverORG(viCRCnow, vfCxOFDMs, vfCxHeS, viNetTBS, viRvID, RBnum, RBfrom, RxM, viLyrN, viModuType, SEQmaxN, viSEQfrom, vfCxSEQs_pool, vfHARQllrS, HARQlen, iSendrN, fNoisePwr, vfMRGllrs_mem);
 
-        _LOOPUP_LT(jjj,0, iSendrN) {
+          VEC_add(vfMPCllrs_sum, vfMPCllrs_sum, vfMRGllrs_mem, iSendrN * HARQlen);
+
+          INT_ZERO(piOKBitN, iSendrN);
+          _LOOPUP_LT(jjj, 0, iSendrN)
+          {
+            //previous transmission is decoded correctly
+            if (0 == viCRCblock[jjj])
+            {
+              continue;
+            }
+            if (0 == viCRCnow[jjj])
+            {
+              piOKBitN[jjj] = viNetTBS[jjj];
+            }
+            *(viCRCfull_pool + (jjj * iRecvrM + cnt)) = viCRCnow[jjj];
+          }
+
+          _LOOPUP_LT(jjj, 0, iSendrN)
+          {
             viOKBitN_pick[jjj] = MAXOP(viOKBitN_pick[jjj], piOKBitN[jjj]);
             viCRC[jjj]         = MINOP(viCRC[jjj], viCRCnow[jjj]);
             viCRCblock[jjj]         = MINOP(viCRCblock[jjj], viCRCnow[jjj]);
+            if (viTranstimes[jjj] == 0)
+            {
+              *(viCRCfull_pool + (jjj * iRecvrM + cnt))=1;
+            }
+            *(viCRCfull_pool + (jjj * iRecvrM + cnt)) = MINOP(*(viCRCfull_pool + (jjj * iRecvrM + cnt)), viCRCnow[jjj]);
         }
     }
 

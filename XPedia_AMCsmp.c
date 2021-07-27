@@ -223,12 +223,12 @@ Change History
     //   viTransblock[0]++;
     // }
     //succeed after 4 times trans
-    if (iNACK == 1 && psAMC->m_Transtimes == 0)
+    if (iNACK == 1 && psAMC->m_Transtimes == MAX_TRANSTIMES-1)
     {
       viTransblock[1]++;
     }
     //number of TB with different re-trans times
-    if (iNACK == 0 && psAMC->m_Transtimes == 0)
+    if (iNACK == 0 && psAMC->m_Transtimes == MAX_TRANSTIMES-1)
     {
       viTransblock[0]++;
     }

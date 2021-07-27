@@ -143,8 +143,8 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     viCRCblock = newINTS(iSendrN*2);
 
 ###################################################RaptorQ related############################################
-    num_packet=25
-    packet_size=25
+    num_packet=600
+    packet_size=100
     # Maxblocksize = int((math.pow(2, 16)-1)*56403*4);#bytes,max overhead: 4
     Maxblocksize = 200000  # 1GB
     Senderbuff = newBYTES(Maxblocksize*iSendrN);#bytes,save sender encoded block data
@@ -152,6 +152,7 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     totalRecvr = newINTS(iSendrN*iRecvrM);#total received symbols numbers
     viNetTBs = newINTS(iSendrN);
     viCRCfull_pool= newINTS(iSendrN*iRecvrM);#本次TTI每个接收机对每个发送信息的接收情况
+    MAX_TRANSTIMES=3;
     class OTI_pythonOrg(Structure):
       _fields_ = [("oti_common", c_ulonglong), ("oti_scheme", c_ulong), ("packet_size", c_size_t),
                   ("overhead", c_float), ("srcsymNum", c_size_t),
@@ -160,7 +161,7 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     #RQ init
     for i in range(iSendrN):
         OTI_python[i].Endflag=True;
-        OTI_python[i].overhead=2;#开销设置为3
+        OTI_python[i].overhead=1.15;#开销设置
     RQ_encodeControl = libRQ.RQ_encodeControl
     RQ_decodePush=libRQ.RQ_decodePush
     RQ_decodeControl=libRQ.RQ_decodeControl
@@ -189,7 +190,8 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
 
 
     SMP_init(viMPCs_pool, MPClen, NetTBScfg, SUMsc, ModuTcfg, fEsN0meas, iSendrN, RxM,  PMslen, AMC_on);    viSNRs_meas.fill(fEsN0meas)
-
+    mintb=75600
+    sum=0
     # print(viMPCs_pool[11])
     for cntTTI in range(TTInum) :
         if GERROR_chk(10) : break;
@@ -200,8 +202,11 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
         # ******************************** Multi. Point Control *************************************************************************************************************************
         CWnum = SMP_control(viMPCs_pool, MPClen, vfCxPMs_pool, viINFOs_pool,  MaxTBS,  viCRCs_pool,  viSNRs_meas,  vfCxPMS_meas,
                             PMslen, SubBN, TxN, isPMok, viTransblock, LyrN,  iSendrN,  iSNRdlyTTI,  iPMIdlyTTI, viCRCblock, viNetTBs)
-        # print(viNetTBs)
-        libRQ.RQ_encodeControl(Senderbuff, viINFOs_pool, viNetTBs, byref(OTI_python[0]),
+        # print(min(min(viNetTBs),mintb))
+        # mintb = min(min(viNetTBs), mintb)
+        #一个块传多次，当前是首次传输
+        if(viMPCs_pool[13]==0):
+          libRQ.RQ_encodeControl(Senderbuff, viINFOs_pool, viNetTBs, byref(OTI_python[0]),
                                  Maxblocksize, num_packet, packet_size, MaxTBS, iSendrN)
 
         NR_transmitterS(vfTxOFDMs_pool,  TxN, viMPCs_pool,  MPClen, viINFOs_pool,  MaxTBS,  RBnum, RBfrom,  SEQmaxN,vfSEQs_all,  SubBN,  PMslen, vfCxPMs_pool, isPMok,iSendrN); # iSenderN=1
@@ -210,13 +215,23 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
         NRprecoder_TypeII(vfCxPMS_meas,  viMPCs_pool,  MPClen,  SubBN,  PMslen, RBnum, vfCxSCHorg_pool, RxM, TxN, TXantC, TXxplN, iSendrN);
         NR_receiverS(viCRCs_pool, iSendrN, viMPCs_pool, MPClen, vfRxOFDMs_pool,  vfCxICEs_pool, iHElen ,  RBnum,  RBfrom,  RxM,  SEQmaxN, vfSEQs_all,  HARQlen, vfHARQllr_pool,  iSendrN, iRecvrM,  fNoisePwr, viCRCblock,viCRCfull_pool);
 
+
         # print("\n")
         # print(cntTTI)
-
-        RQ_decodePush(viINFOs_pool,Senderbuff, Receiverbuff, viCRCfull_pool, byref(OTI_python[0]),
+        iOK_BITS =0
+        if(viMPCs_pool[13] == MAX_TRANSTIMES-1):
+          # if(OTI_python[0].Endflag):
+          #   print(totalRecvr)
+          #   print(OTI_python[0].transNum)
+          #   sum=sum+1
+          # if(OTI_python[1].Endflag):
+          #   sum = sum+1
+          #   print(totalRecvr)
+          #   print(OTI_python[1].transNum)
+          RQ_decodePush(viINFOs_pool,Senderbuff, Receiverbuff, viCRCfull_pool, byref(OTI_python[0]),
                               totalRecvr, iRecvrM, iSendrN, MaxTBS, Maxblocksize)
 
-        iOK_BITS = RQ_decodeControl(Receiverbuff, byref(OTI_python[0]),totalRecvr, iRecvrM, iSendrN, Maxblocksize);
+          iOK_BITS = RQ_decodeControl(Receiverbuff, byref(OTI_python[0]),totalRecvr, iRecvrM, iSendrN, Maxblocksize);
 
         fTPMbps =  float(iOK_BITS)*1.0e-3;      vfTTIMbps[cntTTI] =  fTPMbps;  fSumTP  += fTPMbps;    vfTTI_SNRs[cntTTI*iSendrN:(cntTTI+1)*iSendrN] = viSNRs_meas;
         # print('cntTTI:{:d},,,transtime:{:d},,,iOK_BITS:{:d},,,,transTime1:{:d},,,,transTime2:{:d},,,,INACK1:{:d},,,,INACK1:{:d},,,,viCRCblock1:{:d},,,,viCRCblock2:{:d}'.format(
@@ -237,6 +252,8 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
 
     if 0 < sumTTI : bler = float(errDEC)/float(sumDEC);  avgTP = fSumTP/float(sumTTI); fAvgTP_se = avgTP/float(RBnum*12*12*0.001); # avg. SE w.r.t data SCs occupied!!!
     print('....BLER={:.5f}@EsN0cfg={:.2f}dB  @EsN0meas={:.2f}dB...avgSE={:f}..TPmbps={:f}...{:d}@{:d}TTIs...{:.2f}seconds'.format(bler,fEsN0cfg,fAvgEsN0,fAvgTP_se,avgTP,errDEC,sumTTI,ts_secs))
+    print("sum block：")
+    print(sum)
     gMEM_free(1); #miQ_close(1);
     ##
     print('iNACK == 0... 0:{:d}...1:{:d}... 2:{:d}...3:{:d}...iNACK == 1... 0:{:d}...1:{:d}... 2:{:d}...3:{:d}'.format(
@@ -244,5 +261,5 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     # exec(open('Plot_Harq.py').read())
     return (bler,fAvgEsN0,errDEC,sumTTI,fAvgTP_se);
 
-iSNRdly=2;iPMIdly=2; LyrN=2; iSendrN=2; iRecvrM=1;
-PUSCH_corelink(10.0,100*50,10,iSNRdly,iPMIdly,LyrN,iSendrN,iRecvrM,1,1,1,1);
+
+iSNRdly=2;iPMIdly=2; LyrN=2; iSendrN=2; iRecvrM=1; PUSCH_corelink(10.0,100*50,10,iSNRdly,iPMIdly,LyrN,iSendrN,iRecvrM,1,1,1,1);    # 10RB  isLMMSE=1 TXantC=1,TXantR=1,RXant=1
