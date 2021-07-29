@@ -143,8 +143,8 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     viCRCblock = newINTS(iSendrN*2);
 
 ###################################################RaptorQ related############################################
-    num_packet=600
-    packet_size=100
+    num_packet=50
+    packet_size=50
     # Maxblocksize = int((math.pow(2, 16)-1)*56403*4);#bytes,max overhead: 4
     Maxblocksize = 200000  # 1GB
     Senderbuff = newBYTES(Maxblocksize*iSendrN);#bytes,save sender encoded block data
@@ -152,7 +152,9 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     totalRecvr = newINTS(iSendrN*iRecvrM);#total received symbols numbers
     viNetTBs = newINTS(iSendrN);
     viCRCfull_pool= newINTS(iSendrN*iRecvrM);#本次TTI每个接收机对每个发送信息的接收情况
-    MAX_TRANSTIMES=3;
+    MAX_TRANSTIMES=2;
+    totalBlock = newINTS(iSendrN)
+    oneblockTB=newINTS(iSendrN)
     class OTI_pythonOrg(Structure):
       _fields_ = [("oti_common", c_ulonglong), ("oti_scheme", c_ulong), ("packet_size", c_size_t),
                   ("overhead", c_float), ("srcsymNum", c_size_t),
@@ -161,7 +163,7 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     #RQ init
     for i in range(iSendrN):
         OTI_python[i].Endflag=True;
-        OTI_python[i].overhead=1.15;#开销设置
+        OTI_python[i].overhead=2.5;#开销设置
     RQ_encodeControl = libRQ.RQ_encodeControl
     RQ_decodePush=libRQ.RQ_decodePush
     RQ_decodeControl=libRQ.RQ_decodeControl
@@ -228,10 +230,22 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
           #   sum = sum+1
           #   print(totalRecvr)
           #   print(OTI_python[1].transNum)
+
+          ###统计每个block的TB数，记录残留误块率
+          oneblockTB[0] += 1
+          oneblockTB[1] += 1
+          for i in range(iSendrN):
+            if(OTI_python[i].Endflag):
+              if(OTI_python[i].srcsymNum > totalRecvr[i]):
+                totalBlock[i] += oneblockTB[i]
+              oneblockTB[i] = 0
+
           RQ_decodePush(viINFOs_pool,Senderbuff, Receiverbuff, viCRCfull_pool, byref(OTI_python[0]),
                               totalRecvr, iRecvrM, iSendrN, MaxTBS, Maxblocksize)
 
           iOK_BITS = RQ_decodeControl(Receiverbuff, byref(OTI_python[0]),totalRecvr, iRecvrM, iSendrN, Maxblocksize);
+
+
 
         fTPMbps =  float(iOK_BITS)*1.0e-3;      vfTTIMbps[cntTTI] =  fTPMbps;  fSumTP  += fTPMbps;    vfTTI_SNRs[cntTTI*iSendrN:(cntTTI+1)*iSendrN] = viSNRs_meas;
         # print('cntTTI:{:d},,,transtime:{:d},,,iOK_BITS:{:d},,,,transTime1:{:d},,,,transTime2:{:d},,,,INACK1:{:d},,,,INACK1:{:d},,,,viCRCblock1:{:d},,,,viCRCblock2:{:d}'.format(
@@ -258,6 +272,8 @@ def PUSCH_corelink(fEsN0cfg, TTIcfg, RBnum,  iSNRdlyTTI,iPMIdlyTTI, LyrN, iSendr
     ##
     print('iNACK == 0... 0:{:d}...1:{:d}... 2:{:d}...3:{:d}...iNACK == 1... 0:{:d}...1:{:d}... 2:{:d}...3:{:d}'.format(
         viTransblock[0], viTransblock[1], viTransblock[2], viTransblock[3], viTransblock[4], viTransblock[5], viTransblock[6], viTransblock[7]))
+    print('一共传输的TB数：{:f}........残留误块：{:d}'.format(
+        10000/MAX_TRANSTIMES, totalBlock.sum()))
     # exec(open('Plot_Harq.py').read())
     return (bler,fAvgEsN0,errDEC,sumTTI,fAvgTP_se);
 
